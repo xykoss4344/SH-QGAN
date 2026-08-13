@@ -540,3 +540,2123 @@
 
      Using ACE for calculation of exact exchange
      ACE projected onto    26 (nbndproj) and applied to    26 (nbnd) bands
+
+     total energy              =    -475.74492822 Ry
+     Harris-Foulkes estimate   =    -475.74492861 Ry
+     est. exchange err (dexx)  =       0.02228622 Ry
+     - averaged Fock potential =      21.19922937 Ry
+     + Fock energy (ACE)       =     -10.63221334 Ry
+
+     EXX: now go back to refine exchange calculation
+
+     total cpu time spent up to now is    24151.7 secs
+
+     Self-consistent Calculation
+
+     iteration #  1     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     c_bands:  1 eigenvalues not converged
+     c_bands:  1 eigenvalues not converged
+     c_bands:  1 eigenvalues not converged
+     c_bands:  1 eigenvalues not converged
+     c_bands:  2 eigenvalues not converged
+     c_bands:  1 eigenvalues not converged
+     c_bands:  4 eigenvalues not converged
+     c_bands:  1 eigenvalues not converged
+     c_bands:  1 eigenvalues not converged
+     c_bands:  1 eigenvalues not converged
+     c_bands:  2 eigenvalues not converged
+     c_bands:  2 eigenvalues not converged
+     c_bands:  1 eigenvalues not converged
+     c_bands:  1 eigenvalues not converged
+     c_bands:  1 eigenvalues not converged
+     c_bands:  2 eigenvalues not converged
+     c_bands:  2 eigenvalues not converged
+     c_bands:  1 eigenvalues not converged
+     c_bands:  4 eigenvalues not converged
+     c_bands:  2 eigenvalues not converged
+     c_bands:  5 eigenvalues not converged
+     c_bands:  1 eigenvalues not converged
+     c_bands:  1 eigenvalues not converged
+     c_bands:  3 eigenvalues not converged
+     c_bands:  1 eigenvalues not converged
+     c_bands:  1 eigenvalues not converged
+     c_bands:  1 eigenvalues not converged
+     c_bands:  3 eigenvalues not converged
+     c_bands:  4 eigenvalues not converged
+     c_bands:  2 eigenvalues not converged
+     c_bands:  1 eigenvalues not converged
+     c_bands:  2 eigenvalues not converged
+     c_bands:  1 eigenvalues not converged
+     c_bands:  2 eigenvalues not converged
+     c_bands:  1 eigenvalues not converged
+     c_bands:  2 eigenvalues not converged
+     c_bands:  1 eigenvalues not converged
+     c_bands:  1 eigenvalues not converged
+     c_bands:  5 eigenvalues not converged
+     c_bands:  1 eigenvalues not converged
+     c_bands:  2 eigenvalues not converged
+     c_bands:  3 eigenvalues not converged
+     c_bands:  5 eigenvalues not converged
+     c_bands:  1 eigenvalues not converged
+     c_bands:  3 eigenvalues not converged
+     c_bands:  4 eigenvalues not converged
+     c_bands:  2 eigenvalues not converged
+     c_bands:  1 eigenvalues not converged
+     c_bands:  2 eigenvalues not converged
+     c_bands:  4 eigenvalues not converged
+     c_bands:  4 eigenvalues not converged
+     c_bands:  2 eigenvalues not converged
+     c_bands:  1 eigenvalues not converged
+     c_bands:  3 eigenvalues not converged
+     c_bands:  3 eigenvalues not converged
+     c_bands:  2 eigenvalues not converged
+     c_bands:  5 eigenvalues not converged
+     c_bands:  3 eigenvalues not converged
+     c_bands:  1 eigenvalues not converged
+     c_bands:  1 eigenvalues not converged
+     c_bands:  4 eigenvalues not converged
+     ethr =  3.68E-09,  avg # of iterations = 19.5
+
+     total cpu time spent up to now is    24176.4 secs
+
+     total energy              =    -475.75984574 Ry
+     estimated scf accuracy    <       0.01170582 Ry
+
+     iteration #  2     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  2.72E-05,  avg # of iterations =  3.8
+
+     total cpu time spent up to now is    24183.1 secs
+
+     total energy              =    -475.74902783 Ry
+     estimated scf accuracy    <       0.10724818 Ry
+
+     iteration #  3     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  2.72E-05,  avg # of iterations =  3.6
+
+     total cpu time spent up to now is    24189.5 secs
+
+     total energy              =    -475.76469135 Ry
+     estimated scf accuracy    <       0.00399089 Ry
+
+     iteration #  4     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  9.28E-06,  avg # of iterations =  1.2
+
+     total cpu time spent up to now is    24194.9 secs
+
+     total energy              =    -475.76516127 Ry
+     estimated scf accuracy    <       0.00025804 Ry
+
+     iteration #  5     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  6.00E-07,  avg # of iterations =  2.6
+
+     total cpu time spent up to now is    24201.1 secs
+
+     total energy              =    -475.76524335 Ry
+     estimated scf accuracy    <       0.00004132 Ry
+
+     iteration #  6     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  9.61E-08,  avg # of iterations =  3.9
+
+     total cpu time spent up to now is    24208.0 secs
+
+     total energy              =    -475.76526115 Ry
+     estimated scf accuracy    <       0.00000320 Ry
+
+     iteration #  7     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  7.43E-09,  avg # of iterations =  5.9
+
+     total cpu time spent up to now is    24216.7 secs
+
+     End of self-consistent calculation
+
+     Number of k-points >= 100: set verbosity='high' to print the bands.
+
+     the Fermi energy is     6.8005 ev
+
+!    total energy              =    -475.76526384 Ry
+     estimated scf accuracy    <       0.00000041 Ry
+     smearing contrib. (-TS)   =      -0.00221286 Ry
+     internal energy E=F+TS    =    -475.76305098 Ry
+
+     convergence has been achieved in   7 iterations
+
+     Using ACE for calculation of exact exchange
+     ACE projected onto    26 (nbndproj) and applied to    26 (nbnd) bands
+
+     total energy              =    -475.78483101 Ry
+     Harris-Foulkes estimate   =    -475.78483131 Ry
+     est. exchange err (dexx)  =       0.01956717 Ry
+     - averaged Fock potential =      21.30882880 Ry
+     + Fock energy (ACE)       =     -10.69618263 Ry
+
+     EXX: now go back to refine exchange calculation
+
+     total cpu time spent up to now is    34972.7 secs
+
+     Self-consistent Calculation
+
+     iteration #  1     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     c_bands:  1 eigenvalues not converged
+     c_bands:  1 eigenvalues not converged
+     c_bands:  1 eigenvalues not converged
+     ethr =  7.43E-09,  avg # of iterations = 14.0
+
+     total cpu time spent up to now is    34987.6 secs
+
+     total energy              =    -475.79136279 Ry
+     estimated scf accuracy    <       0.00150747 Ry
+
+     iteration #  2     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  3.51E-06,  avg # of iterations =  3.4
+
+     total cpu time spent up to now is    34994.3 secs
+
+     total energy              =    -475.78978674 Ry
+     estimated scf accuracy    <       0.02099160 Ry
+
+     iteration #  3     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  3.51E-06,  avg # of iterations =  3.1
+
+     total cpu time spent up to now is    35000.3 secs
+
+     total energy              =    -475.79232333 Ry
+     estimated scf accuracy    <       0.00002005 Ry
+
+     iteration #  4     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  4.66E-08,  avg # of iterations =  5.5
+
+     total cpu time spent up to now is    35008.2 secs
+
+     total energy              =    -475.79234736 Ry
+     estimated scf accuracy    <       0.00001286 Ry
+
+     iteration #  5     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  2.99E-08,  avg # of iterations =  2.0
+
+     total cpu time spent up to now is    35013.5 secs
+
+     total energy              =    -475.79234940 Ry
+     estimated scf accuracy    <       0.00000289 Ry
+
+     iteration #  6     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  6.72E-09,  avg # of iterations =  3.8
+
+     total cpu time spent up to now is    35019.5 secs
+
+     End of self-consistent calculation
+
+     Number of k-points >= 100: set verbosity='high' to print the bands.
+
+     the Fermi energy is     6.4235 ev
+
+!    total energy              =    -475.79235016 Ry
+     estimated scf accuracy    <       0.00000026 Ry
+     smearing contrib. (-TS)   =      -0.00035830 Ry
+     internal energy E=F+TS    =    -475.79199186 Ry
+
+     convergence has been achieved in   6 iterations
+
+     Using ACE for calculation of exact exchange
+     ACE projected onto    26 (nbndproj) and applied to    26 (nbnd) bands
+
+     total energy              =    -475.80226340 Ry
+     Harris-Foulkes estimate   =    -475.80226363 Ry
+     est. exchange err (dexx)  =       0.00991325 Ry
+     - averaged Fock potential =      21.40968363 Ry
+     + Fock energy (ACE)       =     -10.72341424 Ry
+
+     EXX: now go back to refine exchange calculation
+
+     total cpu time spent up to now is    45786.8 secs
+
+     Self-consistent Calculation
+
+     iteration #  1     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     c_bands:  1 eigenvalues not converged
+     ethr =  6.72E-09,  avg # of iterations = 12.1
+
+     total cpu time spent up to now is    45800.0 secs
+
+     total energy              =    -475.80618004 Ry
+     estimated scf accuracy    <       0.00070829 Ry
+
+     iteration #  2     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.65E-06,  avg # of iterations =  3.9
+
+     total cpu time spent up to now is    45806.6 secs
+
+     total energy              =    -475.80560385 Ry
+     estimated scf accuracy    <       0.00734769 Ry
+
+     iteration #  3     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.65E-06,  avg # of iterations =  3.4
+
+     total cpu time spent up to now is    45812.5 secs
+
+     total energy              =    -475.80656090 Ry
+     estimated scf accuracy    <       0.00004183 Ry
+
+     iteration #  4     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  9.73E-08,  avg # of iterations =  4.3
+
+     total cpu time spent up to now is    45819.4 secs
+
+     total energy              =    -475.80658307 Ry
+     estimated scf accuracy    <       0.00002694 Ry
+
+     iteration #  5     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  6.26E-08,  avg # of iterations =  1.4
+
+     total cpu time spent up to now is    45824.4 secs
+
+     total energy              =    -475.80658747 Ry
+     estimated scf accuracy    <       0.00000193 Ry
+
+     iteration #  6     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  4.49E-09,  avg # of iterations =  5.5
+
+     total cpu time spent up to now is    45831.7 secs
+
+     End of self-consistent calculation
+
+     Number of k-points >= 100: set verbosity='high' to print the bands.
+
+     the Fermi energy is     6.3780 ev
+
+!    total energy              =    -475.80658872 Ry
+     estimated scf accuracy    <       0.00000031 Ry
+     smearing contrib. (-TS)   =      -0.00040083 Ry
+     internal energy E=F+TS    =    -475.80618789 Ry
+
+     convergence has been achieved in   6 iterations
+
+     Using ACE for calculation of exact exchange
+     ACE projected onto    26 (nbndproj) and applied to    26 (nbnd) bands
+
+     total energy              =    -475.81006434 Ry
+     Harris-Foulkes estimate   =    -475.81006461 Ry
+     est. exchange err (dexx)  =       0.00347562 Ry
+     - averaged Fock potential =      21.45383737 Ry
+     + Fock energy (ACE)       =     -10.73389874 Ry
+
+     EXX: now go back to refine exchange calculation
+
+     total cpu time spent up to now is    56627.1 secs
+
+     Self-consistent Calculation
+
+     iteration #  1     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  4.49E-09,  avg # of iterations = 11.3
+
+     total cpu time spent up to now is    56639.5 secs
+
+     total energy              =    -475.81207802 Ry
+     estimated scf accuracy    <       0.00025880 Ry
+
+     iteration #  2     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  6.02E-07,  avg # of iterations =  3.0
+
+     total cpu time spent up to now is    56645.5 secs
+
+     total energy              =    -475.81194677 Ry
+     estimated scf accuracy    <       0.00132999 Ry
+
+     iteration #  3     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  6.02E-07,  avg # of iterations =  2.0
+
+     total cpu time spent up to now is    56651.2 secs
+
+     total energy              =    -475.81216273 Ry
+     estimated scf accuracy    <       0.00008022 Ry
+
+     iteration #  4     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.87E-07,  avg # of iterations =  1.9
+
+     total cpu time spent up to now is    56656.5 secs
+
+     total energy              =    -475.81217739 Ry
+     estimated scf accuracy    <       0.00001076 Ry
+
+     iteration #  5     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  2.50E-08,  avg # of iterations =  3.1
+
+     total cpu time spent up to now is    56662.3 secs
+
+     End of self-consistent calculation
+
+     Number of k-points >= 100: set verbosity='high' to print the bands.
+
+     the Fermi energy is     6.2143 ev
+
+!    total energy              =    -475.81218074 Ry
+     estimated scf accuracy    <       0.00000026 Ry
+     smearing contrib. (-TS)   =       0.00008615 Ry
+     internal energy E=F+TS    =    -475.81226689 Ry
+
+     convergence has been achieved in   5 iterations
+
+     Using ACE for calculation of exact exchange
+     ACE projected onto    26 (nbndproj) and applied to    26 (nbnd) bands
+
+     total energy              =    -475.81435455 Ry
+     Harris-Foulkes estimate   =    -475.81435478 Ry
+     est. exchange err (dexx)  =       0.00217381 Ry
+     - averaged Fock potential =      21.47157275 Ry
+     + Fock energy (ACE)       =     -10.73984782 Ry
+
+     EXX: now go back to refine exchange calculation
+
+     total cpu time spent up to now is    67549.0 secs
+
+     Self-consistent Calculation
+
+     iteration #  1     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  2.50E-08,  avg # of iterations =  7.0
+
+     total cpu time spent up to now is    67558.0 secs
+
+     total energy              =    -475.81505425 Ry
+     estimated scf accuracy    <       0.00006277 Ry
+
+     iteration #  2     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.46E-07,  avg # of iterations =  2.0
+
+     total cpu time spent up to now is    67563.3 secs
+
+     total energy              =    -475.81504466 Ry
+     estimated scf accuracy    <       0.00005341 Ry
+
+     iteration #  3     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.24E-07,  avg # of iterations =  2.0
+
+     total cpu time spent up to now is    67568.8 secs
+
+     total energy              =    -475.81505297 Ry
+     estimated scf accuracy    <       0.00009702 Ry
+
+     iteration #  4     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.24E-07,  avg # of iterations =  1.7
+
+     total cpu time spent up to now is    67574.1 secs
+
+     total energy              =    -475.81506591 Ry
+     estimated scf accuracy    <       0.00000164 Ry
+
+     iteration #  5     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  3.81E-09,  avg # of iterations =  4.1
+
+     total cpu time spent up to now is    67580.8 secs
+
+     End of self-consistent calculation
+
+     Number of k-points >= 100: set verbosity='high' to print the bands.
+
+     the Fermi energy is     6.4850 ev
+
+!    total energy              =    -475.81506664 Ry
+     estimated scf accuracy    <       0.00000019 Ry
+     smearing contrib. (-TS)   =       0.00007745 Ry
+     internal energy E=F+TS    =    -475.81514409 Ry
+
+     convergence has been achieved in   5 iterations
+
+     Using ACE for calculation of exact exchange
+     ACE projected onto    26 (nbndproj) and applied to    26 (nbnd) bands
+
+     total energy              =    -475.81716582 Ry
+     Harris-Foulkes estimate   =    -475.81716599 Ry
+     est. exchange err (dexx)  =       0.00209918 Ry
+     - averaged Fock potential =      21.48033859 Ry
+     + Fock energy (ACE)       =     -10.74258995 Ry
+
+     EXX: now go back to refine exchange calculation
+
+     total cpu time spent up to now is    78605.5 secs
+
+     Self-consistent Calculation
+
+     iteration #  1     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     c_bands:  1 eigenvalues not converged
+     ethr =  3.81E-09,  avg # of iterations =  9.3
+     Minimization algorithm failed to find Fermi energy: reverting to bisection
+     Possible cause: smearing is larger than the electronic band-gap.
+
+     total cpu time spent up to now is    78618.8 secs
+
+     total energy              =    -475.81824760 Ry
+     estimated scf accuracy    <       0.00006585 Ry
+
+     iteration #  2     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.53E-07,  avg # of iterations =  4.0
+     Minimization algorithm failed to find Fermi energy: reverting to bisection
+     Possible cause: smearing is larger than the electronic band-gap.
+
+     total cpu time spent up to now is    78626.6 secs
+
+     total energy              =    -475.81820784 Ry
+     estimated scf accuracy    <       0.00048068 Ry
+
+     iteration #  3     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.53E-07,  avg # of iterations =  2.6
+     Minimization algorithm failed to find Fermi energy: reverting to bisection
+     Possible cause: smearing is larger than the electronic band-gap.
+
+     total cpu time spent up to now is    78633.4 secs
+
+     total energy              =    -475.81827496 Ry
+     estimated scf accuracy    <       0.00001054 Ry
+
+     iteration #  4     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  2.45E-08,  avg # of iterations =  4.1
+     Minimization algorithm failed to find Fermi energy: reverting to bisection
+     Possible cause: smearing is larger than the electronic band-gap.
+
+     total cpu time spent up to now is    78640.9 secs
+
+     total energy              =    -475.81827861 Ry
+     estimated scf accuracy    <       0.00000310 Ry
+
+     iteration #  5     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  7.22E-09,  avg # of iterations =  2.0
+     Minimization algorithm failed to find Fermi energy: reverting to bisection
+     Possible cause: smearing is larger than the electronic band-gap.
+
+     total cpu time spent up to now is    78647.4 secs
+
+     End of self-consistent calculation
+
+     Number of k-points >= 100: set verbosity='high' to print the bands.
+
+     the Fermi energy is     7.0460 ev
+
+!    total energy              =    -475.81827918 Ry
+     estimated scf accuracy    <       0.00000015 Ry
+     smearing contrib. (-TS)   =      -0.00057008 Ry
+     internal energy E=F+TS    =    -475.81770910 Ry
+
+     convergence has been achieved in   5 iterations
+
+     Using ACE for calculation of exact exchange
+     ACE projected onto    26 (nbndproj) and applied to    26 (nbnd) bands
+
+     total energy              =    -475.81907910 Ry
+     Harris-Foulkes estimate   =    -475.81907924 Ry
+     est. exchange err (dexx)  =       0.00079992 Ry
+     - averaged Fock potential =      21.48643872 Ry
+     + Fock energy (ACE)       =     -10.74464869 Ry
+
+     EXX: now go back to refine exchange calculation
+
+     total cpu time spent up to now is    90654.2 secs
+
+     Self-consistent Calculation
+
+     iteration #  1     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  7.22E-09,  avg # of iterations =  7.2
+
+     total cpu time spent up to now is    90663.6 secs
+
+     total energy              =    -475.82013033 Ry
+     estimated scf accuracy    <       0.00002529 Ry
+
+     iteration #  2     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  5.88E-08,  avg # of iterations =  2.0
+
+     total cpu time spent up to now is    90668.9 secs
+
+     total energy              =    -475.82012307 Ry
+     estimated scf accuracy    <       0.00003115 Ry
+
+     iteration #  3     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  5.88E-08,  avg # of iterations =  2.0
+
+     total cpu time spent up to now is    90674.4 secs
+
+     total energy              =    -475.82012964 Ry
+     estimated scf accuracy    <       0.00003303 Ry
+
+     iteration #  4     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  5.88E-08,  avg # of iterations =  1.0
+
+     total cpu time spent up to now is    90680.0 secs
+
+     End of self-consistent calculation
+
+     Number of k-points >= 100: set verbosity='high' to print the bands.
+
+     the Fermi energy is     7.0570 ev
+
+!    total energy              =    -475.82013382 Ry
+     estimated scf accuracy    <       0.00000015 Ry
+     smearing contrib. (-TS)   =      -0.00045748 Ry
+     internal energy E=F+TS    =    -475.81967634 Ry
+
+     convergence has been achieved in   4 iterations
+
+     Using ACE for calculation of exact exchange
+     ACE projected onto    26 (nbndproj) and applied to    26 (nbnd) bands
+
+     total energy              =    -475.82148222 Ry
+     Harris-Foulkes estimate   =    -475.82148235 Ry
+     est. exchange err (dexx)  =       0.00134840 Ry
+     - averaged Fock potential =      21.49105866 Ry
+     + Fock energy (ACE)       =     -10.74775838 Ry
+
+     EXX: now go back to refine exchange calculation
+
+     total cpu time spent up to now is   109658.9 secs
+
+     Self-consistent Calculation
+
+     iteration #  1     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  5.88E-08,  avg # of iterations =  5.0
+
+     total cpu time spent up to now is   109668.7 secs
+
+     total energy              =    -475.82205842 Ry
+     estimated scf accuracy    <       0.00005690 Ry
+
+     iteration #  2     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.32E-07,  avg # of iterations =  3.0
+
+     total cpu time spent up to now is   109676.4 secs
+
+     total energy              =    -475.82203665 Ry
+     estimated scf accuracy    <       0.00022218 Ry
+
+     iteration #  3     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.32E-07,  avg # of iterations =  2.0
+
+     total cpu time spent up to now is   109683.6 secs
+
+     total energy              =    -475.82207343 Ry
+     estimated scf accuracy    <       0.00002701 Ry
+
+     iteration #  4     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  6.28E-08,  avg # of iterations =  2.1
+
+     total cpu time spent up to now is   109690.8 secs
+
+     total energy              =    -475.82207912 Ry
+     estimated scf accuracy    <       0.00000315 Ry
+
+     iteration #  5     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  7.33E-09,  avg # of iterations =  2.9
+
+     total cpu time spent up to now is   109698.8 secs
+
+     End of self-consistent calculation
+
+     Number of k-points >= 100: set verbosity='high' to print the bands.
+
+     the Fermi energy is     6.7289 ev
+
+!    total energy              =    -475.82207999 Ry
+     estimated scf accuracy    <       0.00000015 Ry
+     smearing contrib. (-TS)   =      -0.00042736 Ry
+     internal energy E=F+TS    =    -475.82165262 Ry
+
+     convergence has been achieved in   5 iterations
+
+     Using ACE for calculation of exact exchange
+     ACE projected onto    26 (nbndproj) and applied to    26 (nbnd) bands
+
+     total energy              =    -475.82254575 Ry
+     Harris-Foulkes estimate   =    -475.82254588 Ry
+     est. exchange err (dexx)  =       0.00046577 Ry
+     - averaged Fock potential =      21.49652989 Ry
+     + Fock energy (ACE)       =     -10.74923728 Ry
+
+     EXX: now go back to refine exchange calculation
+
+     total cpu time spent up to now is   120991.6 secs
+
+     Self-consistent Calculation
+
+     iteration #  1     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  7.33E-09,  avg # of iterations =  6.7
+
+     total cpu time spent up to now is   121003.0 secs
+
+     total energy              =    -475.82299505 Ry
+     estimated scf accuracy    <       0.00004335 Ry
+
+     iteration #  2     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.01E-07,  avg # of iterations =  2.0
+
+     total cpu time spent up to now is   121009.6 secs
+
+     total energy              =    -475.82298590 Ry
+     estimated scf accuracy    <       0.00004728 Ry
+
+     iteration #  3     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.01E-07,  avg # of iterations =  2.0
+
+     total cpu time spent up to now is   121016.1 secs
+
+     total energy              =    -475.82299505 Ry
+     estimated scf accuracy    <       0.00005583 Ry
+
+     iteration #  4     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.01E-07,  avg # of iterations =  1.1
+
+     total cpu time spent up to now is   121022.4 secs
+
+     total energy              =    -475.82300268 Ry
+     estimated scf accuracy    <       0.00000194 Ry
+
+     iteration #  5     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  4.52E-09,  avg # of iterations =  3.4
+
+     total cpu time spent up to now is   121030.2 secs
+
+     End of self-consistent calculation
+
+     Number of k-points >= 100: set verbosity='high' to print the bands.
+
+     the Fermi energy is     6.6178 ev
+
+!    total energy              =    -475.82300335 Ry
+     estimated scf accuracy    <       0.00000007 Ry
+     smearing contrib. (-TS)   =      -0.00025907 Ry
+     internal energy E=F+TS    =    -475.82274427 Ry
+
+     convergence has been achieved in   5 iterations
+
+     Using ACE for calculation of exact exchange
+     ACE projected onto    26 (nbndproj) and applied to    26 (nbnd) bands
+
+     total energy              =    -475.82353831 Ry
+     Harris-Foulkes estimate   =    -475.82353838 Ry
+     est. exchange err (dexx)  =       0.00053497 Ry
+     - averaged Fock potential =      21.49909680 Ry
+     + Fock energy (ACE)       =     -10.75039449 Ry
+
+     EXX: now go back to refine exchange calculation
+
+     total cpu time spent up to now is   132110.9 secs
+
+     Self-consistent Calculation
+
+     iteration #  1     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  4.52E-09,  avg # of iterations =  7.2
+
+     total cpu time spent up to now is   132120.6 secs
+
+     total energy              =    -475.82382611 Ry
+     estimated scf accuracy    <       0.00005083 Ry
+
+     iteration #  2     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.18E-07,  avg # of iterations =  2.0
+
+     total cpu time spent up to now is   132126.4 secs
+
+     total energy              =    -475.82381246 Ry
+     estimated scf accuracy    <       0.00008480 Ry
+
+     iteration #  3     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.18E-07,  avg # of iterations =  2.0
+
+     total cpu time spent up to now is   132132.1 secs
+
+     total energy              =    -475.82383013 Ry
+     estimated scf accuracy    <       0.00005117 Ry
+
+     iteration #  4     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.18E-07,  avg # of iterations =  1.0
+
+     total cpu time spent up to now is   132137.3 secs
+
+     total energy              =    -475.82383745 Ry
+     estimated scf accuracy    <       0.00000235 Ry
+
+     iteration #  5     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  5.47E-09,  avg # of iterations =  2.6
+
+     total cpu time spent up to now is   132143.5 secs
+
+     End of self-consistent calculation
+
+     Number of k-points >= 100: set verbosity='high' to print the bands.
+
+     the Fermi energy is     6.3290 ev
+
+!    total energy              =    -475.82383817 Ry
+     estimated scf accuracy    <       0.00000008 Ry
+     smearing contrib. (-TS)   =      -0.00008557 Ry
+     internal energy E=F+TS    =    -475.82375260 Ry
+
+     convergence has been achieved in   5 iterations
+
+     Using ACE for calculation of exact exchange
+     ACE projected onto    26 (nbndproj) and applied to    26 (nbnd) bands
+
+     total energy              =    -475.82414396 Ry
+     Harris-Foulkes estimate   =    -475.82414403 Ry
+     est. exchange err (dexx)  =       0.00030579 Ry
+     - averaged Fock potential =      21.50125474 Ry
+     + Fock energy (ACE)       =     -10.75116605 Ry
+
+     EXX: now go back to refine exchange calculation
+
+     total cpu time spent up to now is   143215.4 secs
+
+     Self-consistent Calculation
+
+     iteration #  1     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  5.47E-09,  avg # of iterations =  6.4
+
+     total cpu time spent up to now is   143224.8 secs
+
+     total energy              =    -475.82449435 Ry
+     estimated scf accuracy    <       0.00005867 Ry
+
+     iteration #  2     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.36E-07,  avg # of iterations =  2.0
+
+     total cpu time spent up to now is   143230.5 secs
+
+     total energy              =    -475.82447840 Ry
+     estimated scf accuracy    <       0.00009355 Ry
+
+     iteration #  3     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.36E-07,  avg # of iterations =  2.0
+
+     total cpu time spent up to now is   143236.3 secs
+
+     total energy              =    -475.82449806 Ry
+     estimated scf accuracy    <       0.00006061 Ry
+
+     iteration #  4     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.36E-07,  avg # of iterations =  1.0
+
+     total cpu time spent up to now is   143241.7 secs
+
+     total energy              =    -475.82450660 Ry
+     estimated scf accuracy    <       0.00000283 Ry
+
+     iteration #  5     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  6.58E-09,  avg # of iterations =  2.5
+
+     total cpu time spent up to now is   143248.2 secs
+
+     End of self-consistent calculation
+
+     Number of k-points >= 100: set verbosity='high' to print the bands.
+
+     the Fermi energy is     6.2849 ev
+
+!    total energy              =    -475.82450746 Ry
+     estimated scf accuracy    <       0.00000007 Ry
+     smearing contrib. (-TS)   =      -0.00021919 Ry
+     internal energy E=F+TS    =    -475.82428827 Ry
+
+     convergence has been achieved in   5 iterations
+
+     Using ACE for calculation of exact exchange
+     ACE projected onto    26 (nbndproj) and applied to    26 (nbnd) bands
+
+     total energy              =    -475.82522112 Ry
+     Harris-Foulkes estimate   =    -475.82522118 Ry
+     est. exchange err (dexx)  =       0.00071366 Ry
+     - averaged Fock potential =      21.50287549 Ry
+     + Fock energy (ACE)       =     -10.75242310 Ry
+
+     EXX: now go back to refine exchange calculation
+
+     total cpu time spent up to now is   154394.9 secs
+
+     Self-consistent Calculation
+
+     iteration #  1     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  6.58E-09,  avg # of iterations =  6.5
+
+     total cpu time spent up to now is   154404.3 secs
+
+     total energy              =    -475.82670730 Ry
+     estimated scf accuracy    <       0.00007886 Ry
+
+     iteration #  2     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.83E-07,  avg # of iterations =  2.0
+
+     total cpu time spent up to now is   154410.3 secs
+
+     total energy              =    -475.82667499 Ry
+     estimated scf accuracy    <       0.00023940 Ry
+
+     iteration #  3     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.83E-07,  avg # of iterations =  2.0
+
+     total cpu time spent up to now is   154416.0 secs
+
+     total energy              =    -475.82672247 Ry
+     estimated scf accuracy    <       0.00004020 Ry
+
+     iteration #  4     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  9.35E-08,  avg # of iterations =  1.1
+
+     total cpu time spent up to now is   154421.5 secs
+
+     total energy              =    -475.82672805 Ry
+     estimated scf accuracy    <       0.00000281 Ry
+
+     iteration #  5     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  6.53E-09,  avg # of iterations =  2.1
+
+     total cpu time spent up to now is   154427.8 secs
+
+     End of self-consistent calculation
+
+     Number of k-points >= 100: set verbosity='high' to print the bands.
+
+     the Fermi energy is     6.5627 ev
+
+!    total energy              =    -475.82672893 Ry
+     estimated scf accuracy    <       0.00000003 Ry
+     smearing contrib. (-TS)   =      -0.00022837 Ry
+     internal energy E=F+TS    =    -475.82650056 Ry
+
+     convergence has been achieved in   5 iterations
+
+     Using ACE for calculation of exact exchange
+     ACE projected onto    26 (nbndproj) and applied to    26 (nbnd) bands
+
+     total energy              =    -475.82803975 Ry
+     Harris-Foulkes estimate   =    -475.82803977 Ry
+     est. exchange err (dexx)  =       0.00131082 Ry
+     - averaged Fock potential =      21.50677566 Ry
+     + Fock energy (ACE)       =     -10.75566337 Ry
+
+     EXX: now go back to refine exchange calculation
+
+     total cpu time spent up to now is   165617.5 secs
+
+     Self-consistent Calculation
+
+     iteration #  1     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  6.53E-09,  avg # of iterations =  6.8
+
+     total cpu time spent up to now is   165627.1 secs
+
+     total energy              =    -475.82837929 Ry
+     estimated scf accuracy    <       0.00005223 Ry
+
+     iteration #  2     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.21E-07,  avg # of iterations =  2.0
+
+     total cpu time spent up to now is   165632.9 secs
+
+     total energy              =    -475.82836117 Ry
+     estimated scf accuracy    <       0.00010895 Ry
+
+     iteration #  3     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.21E-07,  avg # of iterations =  2.0
+
+     total cpu time spent up to now is   165638.8 secs
+
+     total energy              =    -475.82838535 Ry
+     estimated scf accuracy    <       0.00004186 Ry
+
+     iteration #  4     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  9.73E-08,  avg # of iterations =  1.0
+
+     total cpu time spent up to now is   165644.6 secs
+
+     End of self-consistent calculation
+
+     Number of k-points >= 100: set verbosity='high' to print the bands.
+
+     the Fermi energy is     7.2075 ev
+
+!    total energy              =    -475.82839050 Ry
+     estimated scf accuracy    <       0.00000088 Ry
+     smearing contrib. (-TS)   =      -0.00023861 Ry
+     internal energy E=F+TS    =    -475.82815189 Ry
+
+     convergence has been achieved in   4 iterations
+
+     Using ACE for calculation of exact exchange
+     ACE projected onto    26 (nbndproj) and applied to    26 (nbnd) bands
+
+     total energy              =    -475.82864027 Ry
+     Harris-Foulkes estimate   =    -475.82864108 Ry
+     est. exchange err (dexx)  =       0.00024977 Ry
+     - averaged Fock potential =      21.51166932 Ry
+     + Fock energy (ACE)       =     -10.75625572 Ry
+
+     EXX: now go back to refine exchange calculation
+
+     total cpu time spent up to now is   177690.3 secs
+
+     Self-consistent Calculation
+
+     iteration #  1     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  9.73E-08,  avg # of iterations =  3.7
+
+     total cpu time spent up to now is   177699.6 secs
+
+     total energy              =    -475.82883606 Ry
+     estimated scf accuracy    <       0.00003644 Ry
+
+     iteration #  2     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  8.47E-08,  avg # of iterations =  2.0
+
+     total cpu time spent up to now is   177706.7 secs
+
+     total energy              =    -475.82883112 Ry
+     estimated scf accuracy    <       0.00002479 Ry
+
+     iteration #  3     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  5.77E-08,  avg # of iterations =  2.1
+
+     total cpu time spent up to now is   177713.8 secs
+
+     total energy              =    -475.82883462 Ry
+     estimated scf accuracy    <       0.00005702 Ry
+
+     iteration #  4     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  5.77E-08,  avg # of iterations =  1.5
+
+     total cpu time spent up to now is   177720.2 secs
+
+     End of self-consistent calculation
+
+     Number of k-points >= 100: set verbosity='high' to print the bands.
+
+     the Fermi energy is     7.3142 ev
+
+!    total energy              =    -475.82884181 Ry
+     estimated scf accuracy    <       0.00000070 Ry
+     smearing contrib. (-TS)   =      -0.00024064 Ry
+     internal energy E=F+TS    =    -475.82860118 Ry
+
+     convergence has been achieved in   4 iterations
+
+     Using ACE for calculation of exact exchange
+     ACE projected onto    26 (nbndproj) and applied to    26 (nbnd) bands
+
+     total energy              =    -475.82901586 Ry
+     Harris-Foulkes estimate   =    -475.82901652 Ry
+     est. exchange err (dexx)  =       0.00017405 Ry
+     - averaged Fock potential =      21.51272236 Ry
+     + Fock energy (ACE)       =     -10.75664069 Ry
+
+     EXX: now go back to refine exchange calculation
+
+     total cpu time spent up to now is   196344.5 secs
+
+     Self-consistent Calculation
+
+     iteration #  1     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  5.77E-08,  avg # of iterations =  3.8
+
+     total cpu time spent up to now is   196353.6 secs
+
+     total energy              =    -475.82916056 Ry
+     estimated scf accuracy    <       0.00003848 Ry
+
+     iteration #  2     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  8.95E-08,  avg # of iterations =  2.0
+
+     total cpu time spent up to now is   196361.7 secs
+
+     total energy              =    -475.82915429 Ry
+     estimated scf accuracy    <       0.00005562 Ry
+
+     iteration #  3     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  8.95E-08,  avg # of iterations =  2.0
+
+     total cpu time spent up to now is   196368.9 secs
+
+     total energy              =    -475.82916471 Ry
+     estimated scf accuracy    <       0.00003611 Ry
+
+     iteration #  4     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  8.40E-08,  avg # of iterations =  1.2
+
+     total cpu time spent up to now is   196376.0 secs
+
+     total energy              =    -475.82917063 Ry
+     estimated scf accuracy    <       0.00000308 Ry
+
+     iteration #  5     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  7.17E-09,  avg # of iterations =  2.0
+
+     total cpu time spent up to now is   196388.6 secs
+
+     End of self-consistent calculation
+
+     Number of k-points >= 100: set verbosity='high' to print the bands.
+
+     the Fermi energy is     7.3523 ev
+
+!    total energy              =    -475.82917132 Ry
+     estimated scf accuracy    <       0.00000001 Ry
+     smearing contrib. (-TS)   =      -0.00023939 Ry
+     internal energy E=F+TS    =    -475.82893192 Ry
+
+     convergence has been achieved in   5 iterations
+
+     Using ACE for calculation of exact exchange
+     ACE projected onto    26 (nbndproj) and applied to    26 (nbnd) bands
+
+     total energy              =    -475.82931010 Ry
+     Harris-Foulkes estimate   =    -475.82931011 Ry
+     est. exchange err (dexx)  =       0.00013878 Ry
+     - averaged Fock potential =      21.51350819 Ry
+     + Fock energy (ACE)       =     -10.75700629 Ry
+
+     EXX: now go back to refine exchange calculation
+
+     total cpu time spent up to now is   206564.5 secs
+
+     Self-consistent Calculation
+
+     iteration #  1     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  7.17E-09,  avg # of iterations =  5.5
+
+     total cpu time spent up to now is   206571.8 secs
+
+     total energy              =    -475.82943027 Ry
+     estimated scf accuracy    <       0.00002602 Ry
+
+     iteration #  2     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  6.05E-08,  avg # of iterations =  2.0
+
+     total cpu time spent up to now is   206576.9 secs
+
+     total energy              =    -475.82942603 Ry
+     estimated scf accuracy    <       0.00002380 Ry
+
+     iteration #  3     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  5.53E-08,  avg # of iterations =  2.0
+
+     total cpu time spent up to now is   206581.9 secs
+
+     total energy              =    -475.82943038 Ry
+     estimated scf accuracy    <       0.00003519 Ry
+
+     iteration #  4     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  5.53E-08,  avg # of iterations =  1.2
+
+     total cpu time spent up to now is   206586.7 secs
+
+     End of self-consistent calculation
+
+     Number of k-points >= 100: set verbosity='high' to print the bands.
+
+     the Fermi energy is     7.3672 ev
+
+!    total energy              =    -475.82943486 Ry
+     estimated scf accuracy    <       0.00000085 Ry
+     smearing contrib. (-TS)   =      -0.00024279 Ry
+     internal energy E=F+TS    =    -475.82919207 Ry
+
+     convergence has been achieved in   4 iterations
+
+     Using ACE for calculation of exact exchange
+     ACE projected onto    26 (nbndproj) and applied to    26 (nbnd) bands
+
+     total energy              =    -475.82954811 Ry
+     Harris-Foulkes estimate   =    -475.82954889 Ry
+     est. exchange err (dexx)  =       0.00011325 Ry
+     - averaged Fock potential =      21.51417402 Ry
+     + Fock energy (ACE)       =     -10.75728099 Ry
+
+     EXX: now go back to refine exchange calculation
+
+     total cpu time spent up to now is   216553.7 secs
+
+     Self-consistent Calculation
+
+     iteration #  1     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  5.53E-08,  avg # of iterations =  3.6
+
+     total cpu time spent up to now is   216559.9 secs
+
+     total energy              =    -475.82964336 Ry
+     estimated scf accuracy    <       0.00002571 Ry
+
+     iteration #  2     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  5.98E-08,  avg # of iterations =  2.6
+
+     total cpu time spent up to now is   216565.4 secs
+
+     total energy              =    -475.82963305 Ry
+     estimated scf accuracy    <       0.00008305 Ry
+
+     iteration #  3     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  5.98E-08,  avg # of iterations =  2.0
+
+     total cpu time spent up to now is   216570.6 secs
+
+     total energy              =    -475.82964932 Ry
+     estimated scf accuracy    <       0.00001224 Ry
+
+     iteration #  4     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  2.85E-08,  avg # of iterations =  1.0
+
+     total cpu time spent up to now is   216575.4 secs
+
+     End of self-consistent calculation
+
+     Number of k-points >= 100: set verbosity='high' to print the bands.
+
+     the Fermi energy is     7.3767 ev
+
+!    total energy              =    -475.82965079 Ry
+     estimated scf accuracy    <       0.00000066 Ry
+     smearing contrib. (-TS)   =      -0.00024158 Ry
+     internal energy E=F+TS    =    -475.82940921 Ry
+
+     convergence has been achieved in   4 iterations
+
+     Using ACE for calculation of exact exchange
+     ACE projected onto    26 (nbndproj) and applied to    26 (nbnd) bands
+
+     total energy              =    -475.82974295 Ry
+     Harris-Foulkes estimate   =    -475.82974358 Ry
+     est. exchange err (dexx)  =       0.00009216 Ry
+     - averaged Fock potential =      21.51474874 Ry
+     + Fock energy (ACE)       =     -10.75755992 Ry
+
+     EXX: now go back to refine exchange calculation
+
+     total cpu time spent up to now is   226580.1 secs
+
+     Self-consistent Calculation
+
+     iteration #  1     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  2.85E-08,  avg # of iterations =  3.8
+
+     total cpu time spent up to now is   226586.6 secs
+
+     total energy              =    -475.82982144 Ry
+     estimated scf accuracy    <       0.00002231 Ry
+
+     iteration #  2     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  5.19E-08,  avg # of iterations =  2.1
+
+     total cpu time spent up to now is   226592.0 secs
+
+     total energy              =    -475.82981978 Ry
+     estimated scf accuracy    <       0.00002758 Ry
+
+     iteration #  3     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  5.19E-08,  avg # of iterations =  2.0
+
+     total cpu time spent up to now is   226597.1 secs
+
+     total energy              =    -475.82982454 Ry
+     estimated scf accuracy    <       0.00001823 Ry
+
+     iteration #  4     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  4.24E-08,  avg # of iterations =  1.6
+
+     total cpu time spent up to now is   226602.1 secs
+
+     total energy              =    -475.82982781 Ry
+     estimated scf accuracy    <       0.00000218 Ry
+
+     iteration #  5     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  5.08E-09,  avg # of iterations =  1.8
+
+     total cpu time spent up to now is   226607.0 secs
+
+     End of self-consistent calculation
+
+     Number of k-points >= 100: set verbosity='high' to print the bands.
+
+     the Fermi energy is     7.3806 ev
+
+!    total energy              =    -475.82982821 Ry
+     estimated scf accuracy    <          8.8E-09 Ry
+     smearing contrib. (-TS)   =      -0.00024748 Ry
+     internal energy E=F+TS    =    -475.82958074 Ry
+
+     convergence has been achieved in   5 iterations
+
+     Using ACE for calculation of exact exchange
+     ACE projected onto    26 (nbndproj) and applied to    26 (nbnd) bands
+
+     total energy              =    -475.82990415 Ry
+     Harris-Foulkes estimate   =    -475.82990416 Ry
+     est. exchange err (dexx)  =       0.00007594 Ry
+     - averaged Fock potential =      21.51526594 Ry
+     + Fock energy (ACE)       =     -10.75778196 Ry
+
+     EXX: now go back to refine exchange calculation
+
+     total cpu time spent up to now is   236707.6 secs
+
+     Self-consistent Calculation
+
+     iteration #  1     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  5.08E-09,  avg # of iterations =  5.2
+
+     total cpu time spent up to now is   236715.1 secs
+
+     total energy              =    -475.82997266 Ry
+     estimated scf accuracy    <       0.00001362 Ry
+
+     iteration #  2     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  3.17E-08,  avg # of iterations =  2.0
+
+     total cpu time spent up to now is   236720.4 secs
+
+     total energy              =    -475.82997051 Ry
+     estimated scf accuracy    <       0.00001214 Ry
+
+     iteration #  3     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  2.82E-08,  avg # of iterations =  2.0
+
+     total cpu time spent up to now is   236725.6 secs
+
+     total energy              =    -475.82997268 Ry
+     estimated scf accuracy    <       0.00001838 Ry
+
+     iteration #  4     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  2.82E-08,  avg # of iterations =  1.3
+
+     total cpu time spent up to now is   236730.6 secs
+
+     End of self-consistent calculation
+
+     Number of k-points >= 100: set verbosity='high' to print the bands.
+
+     the Fermi energy is     7.3824 ev
+
+!    total energy              =    -475.82997502 Ry
+     estimated scf accuracy    <       0.00000047 Ry
+     smearing contrib. (-TS)   =      -0.00024641 Ry
+     internal energy E=F+TS    =    -475.82972861 Ry
+
+     convergence has been achieved in   4 iterations
+
+     Using ACE for calculation of exact exchange
+     ACE projected onto    26 (nbndproj) and applied to    26 (nbnd) bands
+
+     total energy              =    -475.83003814 Ry
+     Harris-Foulkes estimate   =    -475.83003858 Ry
+     est. exchange err (dexx)  =       0.00006312 Ry
+     - averaged Fock potential =      21.51568677 Ry
+     + Fock energy (ACE)       =     -10.75796793 Ry
+
+     EXX: now go back to refine exchange calculation
+
+     total cpu time spent up to now is   246880.6 secs
+
+     Self-consistent Calculation
+
+     iteration #  1     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  2.82E-08,  avg # of iterations =  3.5
+
+     total cpu time spent up to now is   246887.5 secs
+
+     total energy              =    -475.83009508 Ry
+     estimated scf accuracy    <       0.00001364 Ry
+
+     iteration #  2     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  3.17E-08,  avg # of iterations =  2.8
+
+     total cpu time spent up to now is   246893.2 secs
+
+     total energy              =    -475.83008952 Ry
+     estimated scf accuracy    <       0.00004640 Ry
+
+     iteration #  3     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  3.17E-08,  avg # of iterations =  2.0
+
+     total cpu time spent up to now is   246898.5 secs
+
+     total energy              =    -475.83009839 Ry
+     estimated scf accuracy    <       0.00000602 Ry
+
+     iteration #  4     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.40E-08,  avg # of iterations =  1.2
+
+     total cpu time spent up to now is   246903.5 secs
+
+     End of self-consistent calculation
+
+     Number of k-points >= 100: set verbosity='high' to print the bands.
+
+     the Fermi energy is     7.3855 ev
+
+!    total energy              =    -475.83009909 Ry
+     estimated scf accuracy    <       0.00000042 Ry
+     smearing contrib. (-TS)   =      -0.00025607 Ry
+     internal energy E=F+TS    =    -475.82984303 Ry
+
+     convergence has been achieved in   4 iterations
+
+     Using ACE for calculation of exact exchange
+     ACE projected onto    26 (nbndproj) and applied to    26 (nbnd) bands
+
+     total energy              =    -475.83015135 Ry
+     Harris-Foulkes estimate   =    -475.83015175 Ry
+     est. exchange err (dexx)  =       0.00005226 Ry
+     - averaged Fock potential =      21.51608502 Ry
+     + Fock energy (ACE)       =     -10.75816935 Ry
+
+     EXX: now go back to refine exchange calculation
+
+     total cpu time spent up to now is   259432.8 secs
+
+     Self-consistent Calculation
+
+     iteration #  1     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.40E-08,  avg # of iterations =  4.1
+
+     total cpu time spent up to now is   259445.8 secs
+
+     total energy              =    -475.83020152 Ry
+     estimated scf accuracy    <       0.00001215 Ry
+
+     iteration #  2     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  2.83E-08,  avg # of iterations =  2.2
+
+     total cpu time spent up to now is   259451.9 secs
+
+     total energy              =    -475.83020050 Ry
+     estimated scf accuracy    <       0.00001623 Ry
+
+     iteration #  3     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  2.83E-08,  avg # of iterations =  2.0
+
+     total cpu time spent up to now is   259457.8 secs
+
+     total energy              =    -475.83020331 Ry
+     estimated scf accuracy    <       0.00000988 Ry
+
+     iteration #  4     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  2.30E-08,  avg # of iterations =  1.6
+
+     total cpu time spent up to now is   259463.2 secs
+
+     total energy              =    -475.83020510 Ry
+     estimated scf accuracy    <       0.00000111 Ry
+
+     iteration #  5     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  2.58E-09,  avg # of iterations =  1.9
+
+     total cpu time spent up to now is   259468.6 secs
+
+     End of self-consistent calculation
+
+     Number of k-points >= 100: set verbosity='high' to print the bands.
+
+     the Fermi energy is     7.3859 ev
+
+!    total energy              =    -475.83020531 Ry
+     estimated scf accuracy    <          4.3E-09 Ry
+     smearing contrib. (-TS)   =      -0.00025490 Ry
+     internal energy E=F+TS    =    -475.82995041 Ry
+
+     convergence has been achieved in   5 iterations
+
+     Using ACE for calculation of exact exchange
+     ACE projected onto    26 (nbndproj) and applied to    26 (nbnd) bands
+
+     total energy              =    -475.83024885 Ry
+     Harris-Foulkes estimate   =    -475.83024885 Ry
+     est. exchange err (dexx)  =       0.00004354 Ry
+     - averaged Fock potential =      21.51644385 Ry
+     + Fock energy (ACE)       =     -10.75831804 Ry
+
+     EXX: now go back to refine exchange calculation
+
+     total cpu time spent up to now is   269576.9 secs
+
+     Self-consistent Calculation
+
+     iteration #  1     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  2.58E-09,  avg # of iterations =  5.5
+
+     total cpu time spent up to now is   269584.5 secs
+
+     total energy              =    -475.83029676 Ry
+     estimated scf accuracy    <       0.00000706 Ry
+
+     iteration #  2     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.64E-08,  avg # of iterations =  2.0
+
+     total cpu time spent up to now is   269589.7 secs
+
+     total energy              =    -475.83029569 Ry
+     estimated scf accuracy    <       0.00000567 Ry
+
+     iteration #  3     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.32E-08,  avg # of iterations =  2.0
+
+     total cpu time spent up to now is   269595.0 secs
+
+     total energy              =    -475.83029662 Ry
+     estimated scf accuracy    <       0.00000998 Ry
+
+     iteration #  4     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.32E-08,  avg # of iterations =  1.5
+
+     total cpu time spent up to now is   269600.1 secs
+
+     End of self-consistent calculation
+
+     Number of k-points >= 100: set verbosity='high' to print the bands.
+
+     the Fermi energy is     7.3858 ev
+
+!    total energy              =    -475.83029788 Ry
+     estimated scf accuracy    <       0.00000022 Ry
+     smearing contrib. (-TS)   =      -0.00027021 Ry
+     internal energy E=F+TS    =    -475.83002768 Ry
+
+     convergence has been achieved in   4 iterations
+
+     Using ACE for calculation of exact exchange
+     ACE projected onto    26 (nbndproj) and applied to    26 (nbnd) bands
+
+     total energy              =    -475.83033379 Ry
+     Harris-Foulkes estimate   =    -475.83033400 Ry
+     est. exchange err (dexx)  =       0.00003591 Ry
+     - averaged Fock potential =      21.51673957 Ry
+     + Fock energy (ACE)       =     -10.75845743 Ry
+
+     EXX: now go back to refine exchange calculation
+
+     total cpu time spent up to now is   281254.3 secs
+
+     Self-consistent Calculation
+
+     iteration #  1     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.32E-08,  avg # of iterations =  3.8
+
+     total cpu time spent up to now is   281261.2 secs
+
+     total energy              =    -475.83037925 Ry
+     estimated scf accuracy    <       0.00000702 Ry
+
+     iteration #  2     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.63E-08,  avg # of iterations =  2.2
+
+     total cpu time spent up to now is   281266.8 secs
+
+     total energy              =    -475.83037670 Ry
+     estimated scf accuracy    <       0.00001829 Ry
+
+     iteration #  3     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.63E-08,  avg # of iterations =  2.0
+
+     total cpu time spent up to now is   281272.2 secs
+
+     total energy              =    -475.83038049 Ry
+     estimated scf accuracy    <       0.00000437 Ry
+
+     iteration #  4     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.02E-08,  avg # of iterations =  1.0
+
+     total cpu time spent up to now is   281277.1 secs
+
+     End of self-consistent calculation
+
+     Number of k-points >= 100: set verbosity='high' to print the bands.
+
+     the Fermi energy is     7.3866 ev
+
+!    total energy              =    -475.83038100 Ry
+     estimated scf accuracy    <       0.00000021 Ry
+     smearing contrib. (-TS)   =      -0.00026867 Ry
+     internal energy E=F+TS    =    -475.83011234 Ry
+
+     convergence has been achieved in   4 iterations
+
+     Using ACE for calculation of exact exchange
+     ACE projected onto    26 (nbndproj) and applied to    26 (nbnd) bands
+
+     total energy              =    -475.83040949 Ry
+     Harris-Foulkes estimate   =    -475.83040969 Ry
+     est. exchange err (dexx)  =       0.00002848 Ry
+     - averaged Fock potential =      21.51701883 Ry
+     + Fock energy (ACE)       =     -10.75858988 Ry
+
+     EXX: now go back to refine exchange calculation
+
+     total cpu time spent up to now is   291949.9 secs
+
+     Self-consistent Calculation
+
+     iteration #  1     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.02E-08,  avg # of iterations =  4.2
+
+     total cpu time spent up to now is   291956.7 secs
+
+     total energy              =    -475.83045545 Ry
+     estimated scf accuracy    <       0.00000662 Ry
+
+     iteration #  2     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.54E-08,  avg # of iterations =  2.1
+
+     total cpu time spent up to now is   291962.1 secs
+
+     total energy              =    -475.83045481 Ry
+     estimated scf accuracy    <       0.00000835 Ry
+
+     iteration #  3     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.54E-08,  avg # of iterations =  2.0
+
+     total cpu time spent up to now is   291967.4 secs
+
+     total energy              =    -475.83045625 Ry
+     estimated scf accuracy    <       0.00000559 Ry
+
+     iteration #  4     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.30E-08,  avg # of iterations =  1.5
+
+     total cpu time spent up to now is   291972.4 secs
+
+     End of self-consistent calculation
+
+     Number of k-points >= 100: set verbosity='high' to print the bands.
+
+     the Fermi energy is     7.3843 ev
+
+!    total energy              =    -475.83045688 Ry
+     estimated scf accuracy    <       0.00000065 Ry
+     smearing contrib. (-TS)   =      -0.00029160 Ry
+     internal energy E=F+TS    =    -475.83016528 Ry
+
+     convergence has been achieved in   4 iterations
+
+     Using ACE for calculation of exact exchange
+     ACE projected onto    26 (nbndproj) and applied to    26 (nbnd) bands
+
+     total energy              =    -475.83047803 Ry
+     Harris-Foulkes estimate   =    -475.83047864 Ry
+     est. exchange err (dexx)  =       0.00002115 Ry
+     - averaged Fock potential =      21.51727767 Ry
+     + Fock energy (ACE)       =     -10.75870894 Ry
+
+     EXX: now go back to refine exchange calculation
+
+     total cpu time spent up to now is   302303.3 secs
+
+     Self-consistent Calculation
+
+     iteration #  1     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.30E-08,  avg # of iterations =  3.9
+
+     total cpu time spent up to now is   302310.0 secs
+
+     total energy              =    -475.83052036 Ry
+     estimated scf accuracy    <       0.00001596 Ry
+
+     iteration #  2     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  3.71E-08,  avg # of iterations =  4.1
+
+     total cpu time spent up to now is   302316.3 secs
+
+     total energy              =    -475.83050924 Ry
+     estimated scf accuracy    <       0.00014847 Ry
+
+     iteration #  3     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  3.71E-08,  avg # of iterations =  3.3
+
+     total cpu time spent up to now is   302322.4 secs
+
+     End of self-consistent calculation
+
+     Number of k-points >= 100: set verbosity='high' to print the bands.
+
+     the Fermi energy is     7.3861 ev
+
+!    total energy              =    -475.83052898 Ry
+     estimated scf accuracy    <       0.00000059 Ry
+     smearing contrib. (-TS)   =      -0.00029010 Ry
+     internal energy E=F+TS    =    -475.83023887 Ry
+
+     convergence has been achieved in   3 iterations
+
+     Using ACE for calculation of exact exchange
+     ACE projected onto    26 (nbndproj) and applied to    26 (nbnd) bands
+
+     total energy              =    -475.83054226 Ry
+     Harris-Foulkes estimate   =    -475.83054279 Ry
+     est. exchange err (dexx)  =       0.00001328 Ry
+     - averaged Fock potential =      21.51747119 Ry
+     + Fock energy (ACE)       =     -10.75877553 Ry
+
+     EXX: now go back to refine exchange calculation
+
+     total cpu time spent up to now is   312553.2 secs
+
+     Self-consistent Calculation
+
+     iteration #  1     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  3.71E-08,  avg # of iterations =  3.0
+
+     total cpu time spent up to now is   312559.3 secs
+
+     total energy              =    -475.83059651 Ry
+     estimated scf accuracy    <       0.00000742 Ry
+
+     iteration #  2     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.72E-08,  avg # of iterations =  3.6
+
+     total cpu time spent up to now is   312565.3 secs
+
+     total energy              =    -475.83059344 Ry
+     estimated scf accuracy    <       0.00003240 Ry
+
+     iteration #  3     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.72E-08,  avg # of iterations =  2.1
+
+     total cpu time spent up to now is   312570.7 secs
+
+     total energy              =    -475.83059882 Ry
+     estimated scf accuracy    <       0.00000293 Ry
+
+     iteration #  4     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  6.82E-09,  avg # of iterations =  2.1
+
+     total cpu time spent up to now is   312575.9 secs
+
+     End of self-consistent calculation
+
+     Number of k-points >= 100: set verbosity='high' to print the bands.
+
+     the Fermi energy is     7.3845 ev
+
+!    total energy              =    -475.83059929 Ry
+     estimated scf accuracy    <       0.00000035 Ry
+     smearing contrib. (-TS)   =      -0.00032215 Ry
+     internal energy E=F+TS    =    -475.83027714 Ry
+
+     convergence has been achieved in   4 iterations
+
+     Using ACE for calculation of exact exchange
+     ACE projected onto    26 (nbndproj) and applied to    26 (nbnd) bands
+
+     total energy              =    -475.83060309 Ry
+     Harris-Foulkes estimate   =    -475.83060342 Ry
+     est. exchange err (dexx)  =       0.00000380 Ry
+     - averaged Fock potential =      21.51769031 Ry
+     + Fock energy (ACE)       =     -10.75891858 Ry
+
+     EXX: now go back to refine exchange calculation
+
+     total cpu time spent up to now is   322784.1 secs
+
+     Self-consistent Calculation
+
+     iteration #  1     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  6.82E-09,  avg # of iterations =  3.8
+
+     total cpu time spent up to now is   322791.0 secs
+
+     total energy              =    -475.83066731 Ry
+     estimated scf accuracy    <       0.00000555 Ry
+
+     iteration #  2     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.29E-08,  avg # of iterations =  2.4
+
+     total cpu time spent up to now is   322796.8 secs
+
+     total energy              =    -475.83066649 Ry
+     estimated scf accuracy    <       0.00001021 Ry
+
+     iteration #  3     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.29E-08,  avg # of iterations =  2.0
+
+     total cpu time spent up to now is   322802.0 secs
+
+     total energy              =    -475.83066830 Ry
+     estimated scf accuracy    <       0.00000449 Ry
+
+     iteration #  4     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.05E-08,  avg # of iterations =  1.2
+
+     total cpu time spent up to now is   322807.2 secs
+
+     End of self-consistent calculation
+
+     Number of k-points >= 100: set verbosity='high' to print the bands.
+
+     the Fermi energy is     7.3809 ev
+
+!    total energy              =    -475.83066891 Ry
+     estimated scf accuracy    <       0.00000034 Ry
+     smearing contrib. (-TS)   =      -0.00032073 Ry
+     internal energy E=F+TS    =    -475.83034819 Ry
+
+     convergence has been achieved in   4 iterations
+
+     Using ACE for calculation of exact exchange
+     ACE projected onto    26 (nbndproj) and applied to    26 (nbnd) bands
+     BEWARE: negative dexx:  -0.589E-05
+
+     total energy              =    -475.83066302 Ry
+     Harris-Foulkes estimate   =    -475.83066334 Ry
+     est. exchange err (dexx)  =       0.00000589 Ry
+     - averaged Fock potential =      21.51792667 Ry
+     + Fock energy (ACE)       =     -10.75900219 Ry
+
+     EXX: now go back to refine exchange calculation
+
+     total cpu time spent up to now is   334546.6 secs
+
+     Self-consistent Calculation
+
+     iteration #  1     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.05E-08,  avg # of iterations =  3.4
+
+     total cpu time spent up to now is   334553.4 secs
+
+     total energy              =    -475.83073600 Ry
+     estimated scf accuracy    <       0.00000663 Ry
+
+     iteration #  2     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.54E-08,  avg # of iterations =  3.8
+
+     total cpu time spent up to now is   334559.7 secs
+
+     total energy              =    -475.83073234 Ry
+     estimated scf accuracy    <       0.00004057 Ry
+
+     iteration #  3     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.54E-08,  avg # of iterations =  2.4
+
+     total cpu time spent up to now is   334565.4 secs
+
+     total energy              =    -475.83073854 Ry
+     estimated scf accuracy    <       0.00000119 Ry
+
+     iteration #  4     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  2.77E-09,  avg # of iterations =  3.9
+
+     total cpu time spent up to now is   334571.8 secs
+
+     End of self-consistent calculation
+
+     Number of k-points >= 100: set verbosity='high' to print the bands.
+
+     the Fermi energy is     7.3792 ev
+
+!    total energy              =    -475.83073870 Ry
+     estimated scf accuracy    <       0.00000036 Ry
+     smearing contrib. (-TS)   =      -0.00036115 Ry
+     internal energy E=F+TS    =    -475.83037755 Ry
+
+     convergence has been achieved in   4 iterations
+
+     Using ACE for calculation of exact exchange
+     ACE projected onto    26 (nbndproj) and applied to    26 (nbnd) bands
+     BEWARE: negative dexx:  -0.163E-04
+
+     total energy              =    -475.83072240 Ry
+     Harris-Foulkes estimate   =    -475.83072273 Ry
+     est. exchange err (dexx)  =       0.00001630 Ry
+     - averaged Fock potential =      21.51809183 Ry
+     + Fock energy (ACE)       =     -10.75907334 Ry
+
+     EXX: now go back to refine exchange calculation
+
+     total cpu time spent up to now is   346220.1 secs
+
+     Self-consistent Calculation
+
+     iteration #  1     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  2.77E-09,  avg # of iterations =  4.6
+
+     total cpu time spent up to now is   346228.1 secs
+
+     total energy              =    -475.83080868 Ry
+     estimated scf accuracy    <       0.00000484 Ry
+
+     iteration #  2     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.13E-08,  avg # of iterations =  3.8
+
+     total cpu time spent up to now is   346234.2 secs
+
+     total energy              =    -475.83080916 Ry
+     estimated scf accuracy    <       0.00000445 Ry
+
+     iteration #  3     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.04E-08,  avg # of iterations =  1.8
+
+     total cpu time spent up to now is   346239.4 secs
+
+     End of self-consistent calculation
+
+     Number of k-points >= 100: set verbosity='high' to print the bands.
+
+     the Fermi energy is     7.3727 ev
+
+!    total energy              =    -475.83081019 Ry
+     estimated scf accuracy    <       0.00000011 Ry
+     smearing contrib. (-TS)   =      -0.00035980 Ry
+     internal energy E=F+TS    =    -475.83045039 Ry
+
+     convergence has been achieved in   3 iterations
+
+     Using ACE for calculation of exact exchange
+     ACE projected onto    26 (nbndproj) and applied to    26 (nbnd) bands
+     BEWARE: negative dexx:  -0.252E-04
+
+     total energy              =    -475.83078504 Ry
+     Harris-Foulkes estimate   =    -475.83078513 Ry
+     est. exchange err (dexx)  =       0.00002516 Ry
+     - averaged Fock potential =      21.51823406 Ry
+     + Fock energy (ACE)       =     -10.75913557 Ry
+
+     EXX: now go back to refine exchange calculation
+
+     total cpu time spent up to now is   356323.3 secs
+
+     Self-consistent Calculation
+
+     iteration #  1     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  1.04E-08,  avg # of iterations =  3.3
+
+     total cpu time spent up to now is   356329.7 secs
+
+     total energy              =    -475.83088053 Ry
+     estimated scf accuracy    <       0.00000306 Ry
+
+     iteration #  2     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  7.11E-09,  avg # of iterations =  2.1
+
+     total cpu time spent up to now is   356335.0 secs
+
+     total energy              =    -475.83087933 Ry
+     estimated scf accuracy    <       0.00000815 Ry
+
+     iteration #  3     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  7.11E-09,  avg # of iterations =  2.0
+
+     total cpu time spent up to now is   356340.3 secs
+
+     total energy              =    -475.83088103 Ry
+     estimated scf accuracy    <       0.00000187 Ry
+
+     iteration #  4     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  4.34E-09,  avg # of iterations =  1.0
+
+     total cpu time spent up to now is   356345.1 secs
+
+     End of self-consistent calculation
+
+     Number of k-points >= 100: set verbosity='high' to print the bands.
+
+     the Fermi energy is     7.3697 ev
+
+!    total energy              =    -475.83088126 Ry
+     estimated scf accuracy    <       0.00000004 Ry
+     smearing contrib. (-TS)   =      -0.00040078 Ry
+     internal energy E=F+TS    =    -475.83048049 Ry
+
+     convergence has been achieved in   4 iterations
+
+     Using ACE for calculation of exact exchange
+     ACE projected onto    26 (nbndproj) and applied to    26 (nbnd) bands
+     BEWARE: negative dexx:  -0.315E-04
+
+     total energy              =    -475.83084980 Ry
+     Harris-Foulkes estimate   =    -475.83084984 Ry
+     est. exchange err (dexx)  =       0.00003147 Ry
+     - averaged Fock potential =      21.51840264 Ry
+     + Fock energy (ACE)       =     -10.75923561 Ry
+
+     EXX: now go back to refine exchange calculation
+
+     total cpu time spent up to now is   366672.1 secs
+
+     Self-consistent Calculation
+
+     iteration #  1     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  4.34E-09,  avg # of iterations =  3.8
+
+     total cpu time spent up to now is   366679.1 secs
+
+     total energy              =    -475.83095111 Ry
+     estimated scf accuracy    <       0.00000216 Ry
+
+     iteration #  2     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  5.02E-09,  avg # of iterations =  1.9
+
+     total cpu time spent up to now is   366684.4 secs
+
+     total energy              =    -475.83095101 Ry
+     estimated scf accuracy    <       0.00000107 Ry
+
+     iteration #  3     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  2.48E-09,  avg # of iterations =  2.0
+
+     total cpu time spent up to now is   366690.3 secs
+
+     total energy              =    -475.83095110 Ry
+     estimated scf accuracy    <       0.00000233 Ry
+
+     iteration #  4     ecut=    60.00 Ry     beta= 0.70
+     Davidson diagonalization with overlap
+     ethr =  2.48E-09,  avg # of iterations =  2.0
+
+     total cpu time spent up to now is   366695.9 secs
+
+     End of self-consistent calculation
+
+     Number of k-points >= 100: set verbosity='high' to print the bands.
+
+     the Fermi energy is     7.3598 ev
+
+!    total energy              =    -475.83095135 Ry
+     estimated scf accuracy    <       0.00000020 Ry
+     smearing contrib. (-TS)   =      -0.00039836 Ry
+     internal energy E=F+TS    =    -475.83055299 Ry
+
+     convergence has been achieved in   4 iterations
+
+     Using ACE for calculation of exact exchange
+     ACE projected onto    26 (nbndproj) and applied to    26 (nbnd) bands
+forrtl: error (200): program aborting due to window-CLOSE event
+Image              PC                Routine            Line        Source             
+KERNELBASE.dll     00007FFD4972A3CD  Unknown               Unknown  Unknown
+KERNEL32.DLL       00007FFD4A2DE8D7  Unknown               Unknown  Unknown
+ntdll.dll          00007FFD4C42C3FC  Unknown               Unknown  Unknown

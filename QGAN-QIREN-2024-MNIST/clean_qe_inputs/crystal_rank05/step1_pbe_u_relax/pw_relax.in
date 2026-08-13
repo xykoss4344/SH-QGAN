@@ -1,0 +1,51 @@
+&CONTROL
+  calculation = 'vc-relax',
+  pseudo_dir = '../../pseudo/',
+  outdir = './out/',
+  prefix = 'qgan',
+&END
+&SYSTEM
+  ibrav = 0,
+  nat = 7,
+  ntyp = 3,
+  ecutwfc = 60.0,
+  ecutrho = 480.0,
+  occupations = 'smearing',
+  smearing = 'cold',
+  degauss = 0.02,
+&END
+&ELECTRONS
+  conv_thr = 1.0d-6,
+  mixing_beta = 0.7,
+&END
+&IONS
+  ion_dynamics = 'bfgs',
+&END
+&CELL
+  cell_dynamics = 'bfgs',
+&END
+
+ATOMIC_SPECIES
+ Mg 24.305 Mg.pbe-n-kjpaw_psl.0.3.0.UPF
+ O 15.999 O.pbe-n-kjpaw_psl.1.0.0.UPF
+ Mn 54.938 Mn.pbe-spn-kjpaw_psl.0.3.1.UPF
+
+CELL_PARAMETERS angstrom
+ 2.958267 0.000000 0.000000
+ 1.499955 6.242452 0.000000
+ 2.957205 3.220110 4.001150
+
+ATOMIC_POSITIONS angstrom
+ Mg 3.426595 4.902546 1.543115
+ Mg 0.480160 1.086358 0.399915
+ Mn 4.917464 2.407939 2.561462
+ O 3.461951 6.944914 1.785691
+ O 4.911665 4.367527 2.931189
+ O 3.436156 2.838148 1.386674
+ O 4.936282 8.457369 3.925427
+
+K_POINTS automatic
+ 4 4 4 0 0 0
+
+HUBBARD {ortho-atomic}
+U Mn-3d 3.9

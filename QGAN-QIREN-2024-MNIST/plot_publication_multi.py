@@ -14,13 +14,15 @@ from mp_api.client import MPRester
 from PIL import Image
 
 plt.rcParams.update({
-    'font.size': 16, 'font.family': 'sans-serif', 'axes.labelsize': 18,
+    'font.size': 16, 'font.family': 'serif', 'axes.labelsize': 18,
     'axes.titlesize': 24, 'axes.titleweight': 'bold', 'axes.labelweight': 'bold',
     'legend.fontsize': 14, 'legend.title_fontsize': 16, 'legend.frameon': True,
-    'legend.edgecolor': 'black', 'figure.facecolor': 'white', 'axes.facecolor': 'white'
+    'legend.edgecolor': 'black', 'figure.facecolor': 'white', 'axes.facecolor': 'white',
+    'axes.linewidth': 2.0, 'patch.linewidth': 2.0, 'lines.linewidth': 2.5,
+    'xtick.direction': 'in', 'ytick.direction': 'in', 'xtick.major.width': 2.0, 'ytick.major.width': 2.0
 })
 
-CACHE_FILE = 'results_analysis/relaxed_structures.pkl'
+CACHE_FILE = 'results_eval_ablation/ablation_report.pkl'
 OUT_DIR = 'results_analysis'
 os.makedirs(OUT_DIR, exist_ok=True)
 
@@ -35,6 +37,10 @@ with open(CACHE_FILE, 'rb') as f:
     cache = SafeUnpickler(f).load()
 q_ehull = cache['q_ehull']
 q_structs = cache['q_structs']
+a_ehull = cache['abl_ehull']
+a_structs = cache['abl_structs']
+c_ehull = cache['cls_ehull']
+c_structs = cache['cls_structs']
 
 def get_native_coords(comp, pd_obj):
     els = pd_obj.elements
@@ -77,12 +83,17 @@ fig_b = ax_b.figure
 fig_b.set_size_inches(10, 8)
 ax_b.set_title('')
 
-xs_q, ys_q = [], []
-for st in q_structs:
-    if st is not None:
-        x, y = get_native_coords(st.composition, dft_pd_b)
-        xs_q.append(x); ys_q.append(y)
-ax_b.plot(xs_q, ys_q, 'ro', markersize=6, alpha=1.0, markeredgecolor='black', markeredgewidth=1.0, zorder=6)
+def plot_pd_points(structs, col, z):
+    xs, ys = [], []
+    for st in structs:
+        if st is not None:
+            x, y = get_native_coords(st.composition, dft_pd_b)
+            xs.append(x); ys.append(y)
+    ax_b.plot(xs, ys, marker='o', color=col, markersize=5, alpha=0.8, markeredgecolor='black', markeredgewidth=0.5, linestyle='None', zorder=z)
+
+plot_pd_points(c_structs, 'green', 6)
+plot_pd_points(a_structs, 'magenta', 7)
+plot_pd_points(q_structs, 'red', 8)
 
 ax_b.text(0.5, -0.05, 'Mg-Mn-O Phase Composition Space', ha='center', va='center', transform=ax_b.transAxes, fontsize=16, fontweight='bold')
 
@@ -93,22 +104,29 @@ except Exception: pass
 
 from matplotlib.lines import Line2D
 custom_b = [
-    Line2D([0], [0], marker='o', color='w', markeredgecolor='black', markerfacecolor='white', markersize=10, label='Stable MP Phases (White Dots)'),
-    Line2D([0], [0], marker='o', color='w', markeredgecolor='black', markerfacecolor='red', markersize=8, label='Quantum GAN Discoveries (Red Dots, Analyzed Below)')
+    Line2D([0], [0], marker='o', color='w', markeredgecolor='black', markerfacecolor='white', markersize=10, label='Stable MP Phases'),
+    Line2D([0], [0], marker='o', color='w', markeredgecolor='black', markerfacecolor='red', markersize=8, label='QGAN-v4'),
+    Line2D([0], [0], marker='o', color='w', markeredgecolor='black', markerfacecolor='magenta', markersize=8, label='Classical Ablation'),
+    Line2D([0], [0], marker='o', color='w', markeredgecolor='black', markerfacecolor='green', markersize=8, label='Classical CNN')
 ]
 ax_b.legend(handles=custom_b, loc='lower center', bbox_to_anchor=(0.5, 1.05), title='Phase Diagram Legend', title_fontsize=14, fontsize=12, frameon=True, framealpha=0.9, edgecolor='black')
 # Force Matplotlib's tight_layout bounding box to include significant left-margin by plotting a completely transparent boundary anchor
 ax_b.plot([-0.15], [-0.05], marker='.', color='white', alpha=0.0)
+ax_b.text(-0.08, 1.15, '(a)', transform=ax_b.transAxes, fontsize=36, fontweight='bold', va='top', ha='right')
 
 fig_b.savefig(os.path.join(OUT_DIR, 'panel_pd.png'), dpi=300, bbox_inches='tight', pad_inches=0.4)
 plt.close(fig_b)
 
 # ── 2. Data Munging for Scatter ──
 data = []
-for eh, st in zip(q_ehull, q_structs):
-    if eh is not None and st is not None:
-        val = float(eh) * 1000
-        data.append({'Formula': st.composition.reduced_formula, 'Energy (meV/atom)': val, 'Type': 'Quantum'})
+def append_data(ehull, structs, tname):
+    for eh, st in zip(ehull, structs):
+        if eh is not None and st is not None:
+            data.append({'Formula': st.composition.reduced_formula, 'Energy (meV/atom)': float(eh) * 1000, 'Type': tname})
+
+append_data(c_ehull, c_structs, 'Classical CNN Baseline')
+append_data(a_ehull, a_structs, 'Classical Ablation')
+append_data(q_ehull, q_structs, 'Quantum GAN-v4')
 
 df = pd.DataFrame(data)
 top_formulas = df['Formula'].value_counts().index[:12]
@@ -120,8 +138,9 @@ df_top = df_top[df_top['Energy (meV/atom)'] <= 300]
 # ── 3. Quantum-Only Scatter Plot ──
 print("Generating Scatter Plot...")
 fig_c, ax_c = plt.subplots(figsize=(14, 6.5))
-sns.stripplot(data=df_top[df_top['Type']=='Quantum'], x='Formula', y='Energy (meV/atom)', 
-              color='blue', marker='o', size=8, alpha=0.7, ax=ax_c, order=top_formulas, jitter=False)
+sns.stripplot(data=df_top, x='Formula', y='Energy (meV/atom)', hue='Type',
+              palette={'Quantum GAN-v4': 'red', 'Classical Ablation': 'magenta', 'Classical CNN Baseline': 'green'},
+              marker='o', size=7, alpha=0.7, ax=ax_c, order=top_formulas, jitter=0.25, dodge=True)
 
 ax_c.set_title('')
 ax_c.axhline(0, color='red', linestyle='-', linewidth=1.5)
@@ -131,8 +150,8 @@ ax_c.set_ylim(-10, 250)
 
 # Safer alignment for thresholds
 ax_c.text(0.1, 5, 'Convex Hull ($E_{hull} = 0$)', color='red', fontsize=14, fontweight='bold', ha='left')
-ax_c.text(0.1, 84, 'Threshold ($E_{hull} \leq 80$)', color='red', fontsize=14, fontweight='bold', ha='left')
-ax_c.text(0.1, 124, 'Metastable threshold ($E_{hull} \leq 120$)', color='darkorange', fontsize=14, fontweight='bold', ha='left')
+ax_c.text(0.1, 84, r'Threshold ($E_{hull} \leq 80$)', color='red', fontsize=14, fontweight='bold', ha='left')
+ax_c.text(0.1, 124, r'Metastable threshold ($E_{hull} \leq 120$)', color='darkorange', fontsize=14, fontweight='bold', ha='left')
 
 ax_c.set_ylabel('Energy Above Convex Hull\n$E_{hull}$ (meV/atom)', fontsize=20, fontweight='bold', labelpad=15)
 ax_c.set_xlabel('', fontsize=20, fontweight='bold', labelpad=15)
@@ -140,9 +159,12 @@ plt.setp(ax_c.get_xticklabels(), rotation=45, ha='right', fontsize=16, fontweigh
 plt.setp(ax_c.get_yticklabels(), fontsize=16)
 
 legend_elements_c = [
-    Line2D([0], [0], marker='o', color='w', label='Quantum GAN Discoveries (Red dots from phase diagram)', markerfacecolor='blue', markersize=12)
+    Line2D([0], [0], marker='o', color='w', label='Quantum GAN-v4', markerfacecolor='red', markersize=10),
+    Line2D([0], [0], marker='o', color='w', label='Classical Ablation', markerfacecolor='magenta', markersize=10),
+    Line2D([0], [0], marker='o', color='w', label='Classical CNN Baseline', markerfacecolor='green', markersize=10)
 ]
 ax_c.legend(handles=legend_elements_c, loc='upper right', title="Data Legend", fontsize=14, title_fontsize=16, frameon=True, framealpha=0.9, edgecolor='black')
+ax_c.text(-0.08, 1.15, '(b)', transform=ax_c.transAxes, fontsize=36, fontweight='bold', va='top', ha='right')
 fig_c.tight_layout()
 fig_c.savefig(os.path.join(OUT_DIR, 'panel_scatter.png'), dpi=300, facecolor='white')
 plt.close(fig_c)

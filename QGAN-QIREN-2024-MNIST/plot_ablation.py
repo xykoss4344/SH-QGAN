@@ -5,12 +5,12 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 plt.rcParams.update({
-    'font.size': 12,
-    'font.family': 'serif',
-    'axes.linewidth': 1.5,
-    'patch.linewidth': 1.5,
-    'axes.labelweight': 'bold',
-    'axes.titleweight': 'bold'
+    'font.size': 14, 'font.family': 'serif', 'axes.linewidth': 2.0, 
+    'patch.linewidth': 2.0, 'lines.linewidth': 2.5, 'axes.labelweight': 'bold', 
+    'axes.titleweight': 'bold', 'xtick.direction': 'in', 'ytick.direction': 'in', 
+    'xtick.major.width': 2.0, 'ytick.major.width': 2.0,
+    'figure.facecolor': 'white', 'axes.facecolor': 'white',
+    'legend.edgecolor': 'black', 'legend.framealpha': 1.0
 })
 
 Q_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -52,12 +52,12 @@ def light_fig(nrows=1, ncols=1, figsize=(12, 6)):
 
 def plot_ablation_comparison():
     print("Generating three-way ablation comparison chart (White theme)...")
-    categories = ["MIC Valid%", "Stable%\n(< 0.1 eV/at)", "Near-stable%\n(0.1-0.5 eV/at)", "Metastable%\n(0.5-2.0 eV/at)"]
+    categories = ["MIC Valid%", "Stable%\n(<= 80 meV/at)", "Near-stable%\n(80-120 meV/at)", "Metastable%\n(120-2000 meV/at)"]
     
     # Counts from ablation_report.txt
-    c_counts = [40, 5, 20, 14]
-    a_counts = [123, 56, 60, 7]
-    q_counts = [283, 14, 260, 9]
+    c_counts = [40, 2, 3, 21]
+    a_counts = [123, 36, 41, 38]
+    q_counts = [283, 18, 50, 215]
 
     c_pcts = [x / N_GEN * 100 for x in c_counts]
     a_pcts = [x / N_GEN * 100 for x in a_counts]
@@ -75,21 +75,21 @@ def plot_ablation_comparison():
         for bar, cnt, pct in zip(bars, counts, pcts):
             ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.05,
                     f"{cnt}\n({pct:.2f}%)", ha='center', va='bottom',
-                    color=TEXT, fontsize=12)
+                    color=TEXT, fontsize=14)
 
     add_labels(bars_c, c_counts, c_pcts)
     add_labels(bars_a, a_counts, a_pcts)
     add_labels(bars_q, q_counts, q_pcts)
 
     ax.set_xticks(x)
-    ax.set_xticklabels(categories, color=TEXT, fontsize=12, fontweight='bold')
-    ax.set_ylabel("Percentage of generated structures (%)", fontsize=12, fontweight='bold')
-    ax.set_title(f"Ablation Study: Crystal Quality Metrics (N_GEN = {N_GEN})", fontsize=14, color=TEXT, fontweight='bold', pad=15)
-    ax.legend(fontsize=12, labelcolor=TEXT, facecolor=BG, edgecolor=SPINE, framealpha=1.0)
+    ax.set_xticklabels(categories, color=TEXT, fontsize=14, fontweight='bold')
+    ax.set_ylabel("Percentage of generated structures (%)", fontsize=15, fontweight='bold')
+    ax.set_title(f"Ablation Study: Crystal Quality Metrics (N_GEN = {N_GEN})", fontsize=18, color=TEXT, fontweight='bold', pad=15)
+    ax.legend(fontsize=14, labelcolor=TEXT, facecolor=BG, edgecolor=SPINE, framealpha=1.0)
     ax.set_ylim(0, max(max(q_pcts), max(a_pcts), max(c_pcts)) * 1.35)
 
     save_path = os.path.join(OUT_DIR, "ablation_metrics.png")
-    fig.savefig(save_path, dpi=150, bbox_inches='tight', facecolor=BG)
+    fig.savefig(save_path, dpi=300, bbox_inches='tight', facecolor=BG)
     plt.close(fig)
     print(f"Saved: {save_path}")
 

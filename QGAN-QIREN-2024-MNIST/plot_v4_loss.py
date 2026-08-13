@@ -6,7 +6,7 @@ import csv
 
 plt.rcParams.update({
     'font.size': 14, 
-    'font.family': 'sans-serif', 
+    'font.family': 'serif', 
     'axes.labelsize': 16,
     'axes.titlesize': 18, 
     'axes.titleweight': 'bold', 
@@ -16,7 +16,13 @@ plt.rcParams.update({
     'legend.edgecolor': 'black', 
     'figure.facecolor': 'white', 
     'axes.facecolor': 'white',
-    'axes.linewidth': 1.5  
+    'axes.linewidth': 2.0,
+    'patch.linewidth': 2.0,
+    'lines.linewidth': 2.5,
+    'xtick.direction': 'in',
+    'ytick.direction': 'in',
+    'xtick.major.width': 2.0,
+    'ytick.major.width': 2.0
 })
 
 epochs, d_loss, wasserstein, q_real, q_fake, g_loss = [], [], [], [], [], []
@@ -70,7 +76,7 @@ for ax in [ax1, ax2, ax3]:
 
 out_dir = 'results_analysis'
 os.makedirs(out_dir, exist_ok=True)
-out_path = os.path.join(out_dir, 'v4_training_loss_multipane_FINAL.png')
+out_path = os.path.join(out_dir, 'v4_training_loss_FINAL.png')
 plt.tight_layout()
 fig.savefig(out_path, dpi=300, bbox_inches='tight')
 print(f"Generated multi-pane Quantum QGAN-V4 specific loss plot: {out_path}")

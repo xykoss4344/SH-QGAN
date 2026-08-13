@@ -1,0 +1,44 @@
+&CONTROL
+  calculation = 'scf',
+  pseudo_dir = '../../pseudo/',
+  outdir = './out/',
+  prefix = 'qgan',
+&END
+&SYSTEM
+  ibrav = 0,
+  nat = 7,
+  ntyp = 3,
+  ecutwfc = 60.0,
+  ecutrho = 480.0,
+  occupations = 'smearing',
+  smearing = 'cold',
+  degauss = 0.02,
+  input_dft = 'hse',
+  nqx1 = 2, nqx2 = 2, nqx3 = 2,
+&END
+&ELECTRONS
+  conv_thr = 1.0d-6,
+  mixing_beta = 0.7,
+&END
+
+ATOMIC_SPECIES
+ Mg 24.305 Mg.pbe-n-kjpaw_psl.0.3.0.UPF
+ O 15.999 O.pbe-n-kjpaw_psl.1.0.0.UPF
+ Mn 54.938 Mn.pbe-spn-kjpaw_psl.0.3.1.UPF
+
+CELL_PARAMETERS angstrom
+ 2.957223 0.000000 0.000000
+ 1.500165 6.241856 0.000000
+ 2.955503 3.218939 3.998525
+
+ATOMIC_POSITIONS angstrom
+ Mg 3.422792 4.891941 1.539549
+ Mg 3.432053 1.074708 0.397743
+ Mn 4.910767 2.398320 2.555629
+ O 3.455254 6.934196 1.783117
+ O 4.905183 4.356532 2.926042
+ O 3.429501 2.827789 1.380965
+ O 4.932426 8.447660 3.919123
+
+K_POINTS automatic
+ 6 6 6 0 0 0

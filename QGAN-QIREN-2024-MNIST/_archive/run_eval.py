@@ -31,11 +31,11 @@ while len(labels) < NUM:
     labels.append(labels[0])
 labels_t = torch.tensor(np.array(labels[:NUM], dtype=np.float32)).to(device)
 
-CKPT = './results_crystal_qgan/checkpoint_450.pt'
+CKPT = './results_crystal_qgan_v4/checkpoint_450.pt'
 print(f'Loading {CKPT}')
 cd = torch.load(CKPT, map_location=device)
 gan = PQWGAN_CC_Crystal(Z_DIM+LABEL_DIM, DATA_DIM, DATA_DIM+LABEL_DIM,
-                        hidden_features=6, hidden_layers=2, spectrum_layer=2, use_noise=0.0)
+                        hidden_features=8, hidden_layers=3, spectrum_layer=1, use_noise=0.0)
 gan.generator.load_state_dict(cd['generator'])
 gan.generator.eval()
 
@@ -64,16 +64,19 @@ try:
         m = np.zeros((30,30)); n=min(30,d.shape[0]); m[:n,:n]=d[:n,:n]; return m
     scores = [ssim(dm(g), dm(random.choice(real_atoms)), data_range=25.0) for g in gen_atoms]
     print(f'SSIM  -- Mean:{np.mean(scores):.4f}  Min:{min(scores):.4f}  Max:{max(scores):.4f}')
-    fig, axes = plt.subplots(1,2,figsize=(14,5))
-    fig.suptitle('SSIM Analysis (Epoch 450, MP Dataset)', fontsize=13, fontweight='bold')
+    plt.rcParams.update({'font.size': 14})
+    fig, axes = plt.subplots(1,2,figsize=(16,6))
+    fig.suptitle('SSIM Analysis (Epoch 450, MP Dataset)', fontsize=18, fontweight='bold')
     axes[0].hist(scores, bins=15, color='steelblue', edgecolor='white', alpha=0.85)
-    axes[0].axvline(np.mean(scores), color='red', linestyle='--', lw=2, label=f'Mean: {np.mean(scores):.3f}')
-    axes[0].axvline(0.65, color='orange', linestyle=':', lw=1.5, label='Classical GAN baseline (~0.65)')
-    axes[0].set_title('SSIM Score Distribution'); axes[0].set_xlabel('SSIM'); axes[0].legend()
+    axes[0].axvline(np.mean(scores), color='red', linestyle='--', lw=2.5, label=f'Mean: {np.mean(scores):.3f}')
+    axes[0].axvline(0.65, color='orange', linestyle=':', lw=2.5, label='Classical GAN (~0.65)')
+    axes[0].set_title('SSIM Score Distribution', fontsize=16, fontweight='bold')
+    axes[0].set_xlabel('Structural Similarity Index (SSIM)', fontsize=15, fontweight='bold'); axes[0].legend(fontsize=14)
     axes[1].imshow(np.hstack([dm(gen_atoms[0]), np.ones((30,2))*25, dm(real_atoms[0])]), cmap='viridis', vmin=0, vmax=25)
-    axes[1].set_title('Distance Matrix: Generated | Real'); axes[1].axis('off')
-    plt.tight_layout(); plt.savefig('eval_ssim.png', dpi=120)
-    print('Saved eval_ssim.png')
+    axes[1].set_title('Distance Matrix: Generated | Real', fontsize=16, fontweight='bold'); axes[1].axis('off')
+    plt.tight_layout(); plt.savefig('logs/eval_ssim.png', dpi=150)
+    print('Saved logs/eval_ssim.png')
+    sys.exit(0)
 except Exception as e:
     print(f'SSIM error: {e}')
 
