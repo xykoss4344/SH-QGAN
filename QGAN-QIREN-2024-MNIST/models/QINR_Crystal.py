@@ -70,11 +70,76 @@ class QuantumLayer(nn.Module):
         out = self.qnn(torch.tanh(x) * np.pi)
         return out.reshape(orgin_shape)
 
+class SetAtomHead(nn.Module):
+    """Permutation-equivariant head that places 28 atoms as a *set*.
+
+    The flat MLP head it replaces emitted 84 independent coordinates: no atom
+    could see where any other atom was going, so overlaps were only discouraged
+    afterwards by a soft loss. Here the slots attend to each other, so "don't sit
+    on top of that one" is expressible in the architecture rather than left to
+    the penalty.
+
+    Two further wins that matter for this project:
+      - Equivariance is by construction. The training data is augmented by
+        permuting slots (datasets/6.data_augmentation_mgmno.py), so the old head
+        burned capacity relearning a symmetry this one cannot violate. That is
+        real data efficiency on a 107-structure dataset.
+      - Each token carries its element identity and the predicted cell, so an
+        atom knows both what it is and how big the box is before choosing a
+        position -- the old head knew neither.
+
+    The quantum trunk conditions every token through FiLM, so the circuit
+    modulates all 28 placements rather than being a bottleneck they pass through.
+    """
+
+    def __init__(self, d_model=128, n_heads=4, n_blocks=2, n_slots=28, trunk_dim=256):
+        super().__init__()
+        self.n_slots = n_slots
+        # Learned per-slot identity: encodes both which element the slot holds
+        # (fixed layout Mg 0:8, Mn 8:16, O 16:28) and slot index.
+        self.slot_embed = nn.Parameter(torch.randn(n_slots, d_model) * 0.02)
+        self.cell_proj = nn.Linear(6, d_model)
+        # FiLM: trunk representation -> per-token scale and shift.
+        self.film = nn.Linear(trunk_dim, 2 * d_model)
+
+        self.blocks = nn.ModuleList([
+            nn.ModuleDict({
+                'attn': nn.MultiheadAttention(d_model, n_heads, batch_first=True),
+                'n1': nn.LayerNorm(d_model),
+                'ff': nn.Sequential(nn.Linear(d_model, d_model * 2), nn.GELU(),
+                                    nn.Linear(d_model * 2, d_model)),
+                'n2': nn.LayerNorm(d_model),
+            }) for _ in range(n_blocks)
+        ])
+        self.out = nn.Linear(d_model, 3)
+
+    def forward(self, shared, cell, label):
+        b = shared.shape[0]
+        x = self.slot_embed.unsqueeze(0).expand(b, -1, -1)          # (B, 28, d)
+        x = x + self.cell_proj(cell).unsqueeze(1)                   # every atom sees the box
+        scale, shift = self.film(shared).chunk(2, dim=-1)
+        x = x * (1 + scale).unsqueeze(1) + shift.unsqueeze(1)       # quantum conditioning
+
+        # Empty slots must not influence the occupied ones.
+        pad = (label < 0.5)                                          # (B, 28) True = ignore
+        # A structure with every slot empty would make attention produce NaN;
+        # keep at least one key visible in that degenerate case.
+        pad = pad & ~pad.all(dim=1, keepdim=True)
+
+        for blk in self.blocks:
+            h = blk['n1'](x)
+            a, _ = blk['attn'](h, h, h, key_padding_mask=pad, need_weights=False)
+            x = x + a
+            x = x + blk['ff'](blk['n2'](x))
+
+        return torch.sigmoid(self.out(x)).reshape(b, self.n_slots * 3)
+
+
 class PQWGAN_CC_Crystal():
-    def __init__(self, input_dim_g, output_dim, input_dim_d, hidden_features, hidden_layers, spectrum_layer, use_noise, outermost_linear=True):
+    def __init__(self, input_dim_g, output_dim, input_dim_d, hidden_features, hidden_layers, spectrum_layer, use_noise, outermost_linear=True, set_head=True):
         self.output_dim = output_dim
         self.critic = self.ClassicalCritic(input_dim_d)
-        self.generator = self.Hybridren(input_dim_g, hidden_features, hidden_layers, output_dim, spectrum_layer, use_noise, outermost_linear=True)
+        self.generator = self.Hybridren(input_dim_g, hidden_features, hidden_layers, output_dim, spectrum_layer, use_noise, outermost_linear=True, set_head=set_head)
 
     class ClassicalCritic(nn.Module):
         def __init__(self, input_dim):
@@ -110,9 +175,10 @@ class PQWGAN_CC_Crystal():
         Keeping the heads separate ensures WGAN gradients can independently
         steer cell geometry vs atom positions, preventing cell-param collapse.
         """
-        def __init__(self, in_features, hidden_features, hidden_layers, out_features, spectrum_layer, use_noise, outermost_linear=True, label_dim=28):
+        def __init__(self, in_features, hidden_features, hidden_layers, out_features, spectrum_layer, use_noise, outermost_linear=True, label_dim=28, set_head=True):
             super().__init__()
             self.label_dim = label_dim
+            self.set_head = set_head
 
             # ── Shared quantum trunk ──────────────────────────────────────────
             trunk = [HybridLayer(in_features, hidden_features, spectrum_layer, use_noise, idx=1)]
@@ -149,14 +215,19 @@ class PQWGAN_CC_Crystal():
 
             # ── Atom position head (84 outputs: 28 atoms × 3 coords) ─────────
             # Fractional coordinates in [0,1]
-            self.atom_head = nn.Sequential(
-                nn.Linear(256, 512),
-                nn.LeakyReLU(0.2),
-                nn.Linear(512, 256),
-                nn.LeakyReLU(0.2),
-                nn.Linear(256, 84),
-                nn.Sigmoid(),
-            )
+            if set_head:
+                self.atom_head = SetAtomHead(trunk_dim=256)
+            else:
+                # Flat baseline, kept for the ablation: 84 independent outputs,
+                # no atom aware of any other.
+                self.atom_head = nn.Sequential(
+                    nn.Linear(256, 512),
+                    nn.LeakyReLU(0.2),
+                    nn.Linear(512, 256),
+                    nn.LeakyReLU(0.2),
+                    nn.Linear(256, 84),
+                    nn.Sigmoid(),
+                )
 
         def forward(self, coords):
             label  = coords[:, -self.label_dim:]      # input is cat([z, label])
@@ -169,7 +240,9 @@ class PQWGAN_CC_Crystal():
             # exactly 0.0, which a sigmoid can never emit. Map onto the real
             # support, then mask empty slots to exact zero -- that makes the
             # conditioning structural instead of something the critic has to teach.
-            atoms  = BOX_OFFSET + BOX_SCALE * self.atom_head(shared)   # (batch, 84)
+            raw    = (self.atom_head(shared, cell, label) if self.set_head
+                      else self.atom_head(shared))                     # (batch, 84)
+            atoms  = BOX_OFFSET + BOX_SCALE * raw
             atoms  = atoms * label.repeat_interleave(3, dim=1)
 
             return torch.cat([cell, atoms], dim=1)   # (batch, 90)

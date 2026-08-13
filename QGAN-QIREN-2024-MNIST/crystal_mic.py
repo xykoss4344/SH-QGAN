@@ -21,6 +21,27 @@ BOX_OFFSET, BOX_SCALE = 1.0 / 6.0, 2.0 / 3.0
 
 VALID_THRESHOLD = 1.0  # Angstrom
 
+# Species-aware hard floors (Angstrom): distances below these are unphysical for
+# Mg-Mn-O, roughly 0.8x the typical bond length in the relevant oxides. The flat
+# 1.0A validity bar says nothing about chemistry -- an Mg-O pair at 1.1A passes it
+# and is still nonsense. Training against these targets chemical plausibility, and
+# clearing them clears 1.0A for free.
+_MIN_SEP = {
+    ('Mg', 'Mg'): 2.4, ('Mg', 'Mn'): 2.3, ('Mg', 'O'): 1.7,
+    ('Mn', 'Mn'): 2.2, ('Mn', 'O'): 1.6, ('O', 'O'): 2.0,
+}
+
+
+def min_separation_matrix(species_map=SPECIES_MAP):
+    """(28, 28) matrix of per-pair minimum allowed separation in Angstrom."""
+    n = len(species_map)
+    m = np.zeros((n, n), dtype=np.float32)
+    for i in range(n):
+        for j in range(n):
+            a, b = species_map[i], species_map[j]
+            m[i, j] = _MIN_SEP.get((a, b)) or _MIN_SEP[(b, a)]
+    return m
+
 
 def decode(coords_90, label_28, species_map=SPECIES_MAP):
     """90-dim vector -> (species, fractional coords, 6 cell params).

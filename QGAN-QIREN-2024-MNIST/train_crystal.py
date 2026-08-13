@@ -10,6 +10,7 @@ from torch.optim import Adam
 import torch.autograd as autograd
 from models.QINR_Crystal import PQWGAN_CC_Crystal
 from probe_collapse import probe_generator
+from crystal_mic import min_separation_matrix
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -23,8 +24,7 @@ def compute_gradient_penalty(critic, real_samples, fake_samples, labels, device)
     """
     alpha = torch.rand(real_samples.size(0), 1).to(device)
     interpolates = (alpha * real_samples + (1 - alpha) * fake_samples).requires_grad_(True)
-    interpolates_cond = torch.cat([interpolates, labels], dim=1)
-    d_interpolates = critic(interpolates_cond)
+    d_interpolates = critic(critic_input(interpolates, labels))
 
     fake = torch.ones(real_samples.shape[0], 1).to(device).requires_grad_(False)
     gradients = autograd.grad(
@@ -135,11 +135,11 @@ class QHead(nn.Module):
 # ─────────────────────────────────────────────────────────────────────────────
 # Differentiable minimum-image distance penalty
 # ─────────────────────────────────────────────────────────────────────────────
-def min_dist_penalty(fake, labels, threshold=1.0):
-    """Hinge penalty on interatomic distances below `threshold` Angstrom.
+_SEP = torch.from_numpy(min_separation_matrix())
 
-    This is the only loss term that touches the metric the model is scored on
-    (v4 sat at 0.59A mean min-distance against a 1.0A bar; real data is 1.92A).
+
+def _pair_distances(fake, labels):
+    """(B, 28, 28) interatomic distances in Angstrom under the minimum image.
 
     ponytail: single-image MIC wrap, exact for near-orthogonal cells and a good
     approximation otherwise. Swap for the full 27-image sum if strongly
@@ -166,14 +166,71 @@ def min_dist_penalty(fake, labels, threshold=1.0):
     df   = frac.unsqueeze(2) - frac.unsqueeze(1)          # (B, 28, 28, 3)
     df   = df - torch.round(df)                           # minimum image
     cart = torch.matmul(df, lattice.unsqueeze(1))         # (B, 28, 28, 3)
-    dist = torch.linalg.norm(cart, dim=-1)                # (B, 28, 28)
+    return torch.linalg.norm(cart + 1e-12, dim=-1)        # (B, 28, 28)
+
+
+def min_dist_penalty(fake, labels, threshold=1.0, species_aware=True):
+    """Penalty on interatomic distances that are too close.
+
+    Two things this gets right that the obvious version does not:
+
+    1. Violations are summed PER STRUCTURE, not averaged over pairs. With 28
+       atoms there are up to 378 pairs, so averaging dilutes a single clashing
+       pair ~378x -- the v8 run showed Dist=0.0028 (apparently satisfied) while
+       only 17% of structures were valid. One bad pair invalidates a whole
+       crystal, so it must carry the weight of one bad pair.
+    2. `species_aware` uses per-pair chemical floors (Mg-O 1.7A, O-O 2.0A, ...)
+       rather than a flat bar. An Mg-O contact at 1.1A clears the 1.0A validity
+       threshold and is still chemically nonsense.
+
+    """
+    dist = _pair_distances(fake, labels)
 
     # Only real atom pairs count: both slots occupied, and i != j.
     occ  = labels.unsqueeze(2) * labels.unsqueeze(1)      # (B, 28, 28)
     pair = occ * (1.0 - torch.eye(28, device=fake.device)).unsqueeze(0)
 
-    viol = torch.relu(threshold - dist) ** 2 * pair
-    return viol.sum() / pair.sum().clamp(min=1.0)
+    if species_aware:
+        floor = _SEP.to(fake.device).unsqueeze(0)         # (1, 28, 28)
+    else:
+        floor = torch.full_like(dist, threshold)
+
+    viol = torch.relu(floor - dist) ** 2 * pair
+    # Sum within a structure, mean across the batch -- see docstring point 1.
+    return viol.sum(dim=(1, 2)).mean()
+
+
+def geometry_features(x, labels, k=8):
+    """k smallest interatomic distances per structure, for the critic.
+
+    The critic saw 90 raw numbers and had to infer geometry from them, which it
+    cannot really do: whether two fractional coordinates are close depends on the
+    lattice, which is six other numbers away. Handing it the actual sorted
+    contact distances makes "this structure has atoms on top of each other" a
+    feature rather than something it must learn to compute.
+    """
+    d = _pair_distances(x, labels)                                   # (B, 28, 28)
+    occ = labels.unsqueeze(2) * labels.unsqueeze(1)
+    pair = occ * (1.0 - torch.eye(28, device=x.device)).unsqueeze(0)
+    # Non-pairs pushed out of the way so they never enter the k smallest.
+    d = d + (1.0 - pair) * 1e3
+    flat = d.reshape(d.shape[0], -1)
+    kk = min(k, flat.shape[1])
+    smallest = torch.topk(flat, kk, dim=1, largest=False).values
+    return torch.clamp(smallest, max=20.0) / 20.0
+
+
+# Set False to reproduce the flat-critic ablation.
+USE_GEOMETRY_FEATURES = True
+GEOM_K = 8
+
+
+def critic_input(x, labels):
+    """Everything the critic sees: structure, label, and contact geometry."""
+    parts = [x, labels]
+    if USE_GEOMETRY_FEATURES:
+        parts.append(geometry_features(x, labels, k=GEOM_K))
+    return torch.cat(parts, dim=1)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -208,7 +265,7 @@ def train(args):
 
     # ── Model ─────────────────────────────────────────────────────────────────
     gen_input_dim    = z_dim + label_dim        # generator: noise + label
-    critic_input_dim = data_dim + label_dim     # critic:    data  + label
+    critic_input_dim = data_dim + label_dim + (GEOM_K if USE_GEOMETRY_FEATURES else 0)
     print("Initializing QINR Crystal Model...")
     gan = PQWGAN_CC_Crystal(
         input_dim_g   = gen_input_dim,
@@ -271,10 +328,8 @@ def train(args):
             gen_input = torch.cat([z, labels], dim=1)
             fake_imgs = generator(gen_input).detach()   # no G gradients here
 
-            real_cond = torch.cat([real_imgs, labels], dim=1)
-            fake_cond = torch.cat([fake_imgs, labels], dim=1)
-            d_real    = critic(real_cond)
-            d_fake    = critic(fake_cond)
+            d_real    = critic(critic_input(real_imgs, labels))
+            d_fake    = critic(critic_input(fake_imgs, labels))
 
             gp         = compute_gradient_penalty(critic, real_imgs, fake_imgs, labels, device)
             l_critic   = torch.mean(d_fake) - torch.mean(d_real)
@@ -305,8 +360,7 @@ def train(args):
                 gen_input = torch.cat([z, labels], dim=1)
                 fake_imgs = generator(gen_input)
 
-                fake_cond    = torch.cat([fake_imgs, labels], dim=1)
-                d_fake_for_g = critic(fake_cond)
+                d_fake_for_g = critic(critic_input(fake_imgs, labels))
                 g_wgan       = -torch.mean(d_fake_for_g)
 
                 # Q-Head composition loss on FAKE structures
@@ -418,8 +472,11 @@ if __name__ == "__main__":
     parser.add_argument("--seed",            type=int,   default=0,
                         help="RNG seed. Reviewers asked for multi-seed error bars; "
                              "run the same config across several seeds and aggregate.")
-    parser.add_argument("--lambda_dist",     type=float, default=1.0,
-                        help="Weight on the <1A interatomic distance penalty.")
+    parser.add_argument("--lambda_dist",     type=float, default=0.02,
+                        help="Weight on the interatomic distance penalty. Rescaled from "
+                             "1.0: the penalty now sums violations per structure instead "
+                             "of averaging over ~378 pairs, so raw values start ~190 "
+                             "rather than ~0.003. 0.02 puts it on par with the WGAN term.")
     parser.add_argument("--lambda_q",        type=float, default=0.3,
                         help="Weight on the Q-Head composition loss in the G objective.")
     parser.add_argument("--plateau_window",   type=int,   default=30,
