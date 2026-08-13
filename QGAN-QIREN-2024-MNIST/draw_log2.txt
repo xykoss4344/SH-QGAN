@@ -1,3 +1,0 @@
-C:\Users\Adminb\OneDrive\Documents\Projects\qgan\QINR-QGAN\QGAN-QIREN-2024-MNIST\draw_qgan_annotated.py:75: SyntaxWarning: "\l" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\l"? A raw string is also an option.
-  for y in [59, 57, 51]: draw_box(57, y-1.5, 3, 3, '$\lambda$', fc='#ffe082', fs=12)
-Successfully rendered Annotated QGAN diagram.

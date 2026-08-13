@@ -1,10 +1,0 @@
-C:\Users\Adminb\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\mp_api\client\mprester.py:541: UserWarning: The `inc_structure` argument is deprecated as final structures are always included in all returned ComputedStructureEntry objects.
-  warnings.warn(
-Loading cached structures...
-Fetching Materials Project Phase Diagram...
-Retrieving ThermoDoc documents:   0%|          | 0/250 [00:00<?, ?it/s]Retrieving ThermoDoc documents: 100%|##########| 250/250 [00:00<00:00, 3554494.92it/s]
-Ignoring fixed y limits to fulfill fixed data aspect with adjustable data limits.
-Saved ternary background contour diagram.
-Extracting data for stoichiometry energy plots...
-Saved formula scatter plots: results_analysis\publication_ehull_scatter.png
-All plots generated successfully.

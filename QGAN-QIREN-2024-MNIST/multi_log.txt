@@ -1,8 +1,0 @@
-C:\Users\Adminb\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\mp_api\client\mprester.py:541: UserWarning: The `inc_structure` argument is deprecated as final structures are always included in all returned ComputedStructureEntry objects.
-  warnings.warn(
-Loading cached structures...
-Fetching Materials Project Phase Diagram...
-Retrieving ThermoDoc documents:   0%|          | 0/250 [00:00<?, ?it/s]Retrieving ThermoDoc documents: 100%|##########| 250/250 [00:00<00:00, 9446630.63it/s]
-Error drawing Phase Diagrams: 'PDPlotter' object has no attribute '_get_phase_coords'
-Stitching panels together...
-Error during stitching: [Errno 2] No such file or directory: 'results_analysis/panel_a.png'

@@ -1,7 +1,0 @@
-C:\Users\Adminb\OneDrive\Documents\Projects\qgan\QINR-QGAN\QGAN-QIREN-2024-MNIST\draw_qgan_clean.py:72: SyntaxWarning: "\l" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\l"? A raw string is also an option.
-  for y in [63, 60, 57]: draw_box(77, y, 3, 2.5, '$\lambda$', fc='#fbbf24', tc='#593d04')
-Traceback (most recent call last):
-  File "C:\Users\Adminb\OneDrive\Documents\Projects\qgan\QINR-QGAN\QGAN-QIREN-2024-MNIST\draw_qgan_clean.py", line 153, in <module>
-    arrow(5, 65, 15, 65, ls='--', col='#ef4444', lw=2)
-    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-TypeError: arrow() got an unexpected keyword argument 'col'
