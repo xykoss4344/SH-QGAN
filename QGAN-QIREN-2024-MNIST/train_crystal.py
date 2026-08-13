@@ -138,13 +138,8 @@ class QHead(nn.Module):
 _SEP = torch.from_numpy(min_separation_matrix())
 
 
-def _pair_distances(fake, labels):
-    """(B, 28, 28) interatomic distances in Angstrom under the minimum image.
-
-    ponytail: single-image MIC wrap, exact for near-orthogonal cells and a good
-    approximation otherwise. Swap for the full 27-image sum if strongly
-    triclinic cells start mattering.
-    """
+def _lattice(fake):
+    """(B, 3, 3) lattice matrix in Angstrom from the generated cell head."""
     arr     = fake.view(fake.shape[0], 30, 3)
     lengths = arr[:, 0] * 30.0
     angles  = torch.deg2rad(torch.clamp(arr[:, 1] * 180.0, 30.0, 150.0))
@@ -159,7 +154,45 @@ def _pair_distances(fake, labels):
     cy = c * (torch.cos(al) - torch.cos(be) * torch.cos(ga)) / (torch.sin(ga) + 1e-9)
     cz = torch.sqrt(torch.clamp(c ** 2 - cx ** 2 - cy ** 2, min=1e-6))
     v3 = torch.stack([cx, cy, cz], dim=-1)
-    lattice = torch.stack([v1, v2, v3], dim=1)            # (B, 3, 3)
+    return torch.stack([v1, v2, v3], dim=1)               # (B, 3, 3)
+
+
+# Measured on datasets/mgmno_100.pickle: volume per atom 11.77 +/- 1.84 A^3,
+# 5th-95th percentile 10.0-15.6. Oxides are close-packed; this is a tight,
+# physically meaningful constraint.
+VPA_LO, VPA_HI = 10.0, 15.6
+
+
+def volume_penalty(fake, labels, lo=VPA_LO, hi=VPA_HI):
+    """Keep volume per atom inside the range real Mg-Mn-O oxides occupy.
+
+    Without this, inflating the lattice is the cheapest way to satisfy the
+    minimum-distance penalty, and the model takes it: v9 reached 98.8% "valid"
+    at an ~11A cell against a real 6.1-6.4A, i.e. ~6x the true volume per atom.
+    Validity bought that way is worthless -- density is a standard benchmark
+    metric and such structures would score terribly on it and on E_hull.
+
+    Log-space hinge so it is scale-free, with a dead zone across the real
+    percentile range so the model is constrained but not pinned to the mean.
+    """
+    lat = _lattice(fake)
+    vol = torch.linalg.det(lat).abs()                     # (B,)
+    n   = labels.sum(dim=1).clamp(min=1.0)
+    vpa = (vol / n).clamp(min=1e-3)
+    logv = torch.log(vpa)
+    return (torch.relu(logv - np.log(hi)) ** 2
+            + torch.relu(np.log(lo) - logv) ** 2).mean()
+
+
+def _pair_distances(fake, labels):
+    """(B, 28, 28) interatomic distances in Angstrom under the minimum image.
+
+    ponytail: single-image MIC wrap, exact for near-orthogonal cells and a good
+    approximation otherwise. Swap for the full 27-image sum if strongly
+    triclinic cells start mattering.
+    """
+    arr     = fake.view(fake.shape[0], 30, 3)
+    lattice = _lattice(fake)
 
     # Undo the 15A re-boxing to get true fractional coords, then pair them up.
     frac = (arr[:, 2:] - 1.0 / 6.0) / (2.0 / 3.0)         # (B, 28, 3)
@@ -292,6 +325,7 @@ def train(args):
     lambda_q    = args.lambda_q      # composition conditioning weight on G
     # Min-distance penalty ramps in so the WGAN signal stabilises first.
     lambda_dist = args.lambda_dist
+    lambda_vol  = args.lambda_vol
     warmup_dist = 20
 
     # ── Loss tracking ─────────────────────────────────────────────────────────
@@ -368,9 +402,11 @@ def train(args):
 
                 # Penalise atoms closer than 1.0A — the validity metric itself.
                 l_dist = min_dist_penalty(fake_imgs, labels)
+                # Stops the model buying validity by inflating the lattice.
+                l_vol  = volume_penalty(fake_imgs, labels)
 
                 # Total G loss: WGAN + composition + geometry validity
-                g_loss = g_wgan + lambda_q * l_q_fake + dist_w * l_dist
+                g_loss = g_wgan + lambda_q * l_q_fake + dist_w * l_dist + lambda_vol * l_vol
 
                 g_loss.backward()
                 optimizer_G.step()
@@ -384,7 +420,7 @@ def train(args):
                     print(f"[Epoch {epoch}/{args.n_epochs}] [Batch {i}/{len(dataloader)}] "
                           f"[D: {d_loss.item():.3f}] [W: {wasserstein.item():.3f}] "
                           f"[Q_real: {l_q_real.item():.3f}] [Q_fake: {l_q_fake.item():.3f}] "
-                          f"[Dist: {l_dist.item():.4f}] [dist_w: {dist_w:.2f}]")
+                          f"[Dist: {l_dist.item():.4f}] [Vol: {l_vol.item():.4f}] [dist_w: {dist_w:.2f}]")
 
         # ── Checkpoint ────────────────────────────────────────────────────────
         if epoch % args.save_interval == 0:
@@ -477,6 +513,10 @@ if __name__ == "__main__":
                              "1.0: the penalty now sums violations per structure instead "
                              "of averaging over ~378 pairs, so raw values start ~190 "
                              "rather than ~0.003. 0.02 puts it on par with the WGAN term.")
+    parser.add_argument("--lambda_vol",      type=float, default=5.0,
+                        help="Weight on the volume-per-atom prior. Applied from epoch 0 "
+                             "(no warmup): it must be in force before the distance "
+                             "penalty starts rewarding lattice inflation.")
     parser.add_argument("--lambda_q",        type=float, default=0.3,
                         help="Weight on the Q-Head composition loss in the G objective.")
     parser.add_argument("--plateau_window",   type=int,   default=30,

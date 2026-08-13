@@ -26,6 +26,19 @@ from crystal_mic import validity
 
 N_PROBE = 256
 Z_DEAD_THRESHOLD = 1e-2
+VPA_OK = (9.0, 18.0)     # real Mg-Mn-O is 11.77 +/- 1.84 A^3/atom
+
+
+def volume_per_atom(coords, labels):
+    """Cell volume divided by atom count, in A^3. The cell-inflation detector."""
+    arr = np.asarray(coords).reshape(-1, 30, 3)
+    L = arr[:, 0] * 30.0
+    A = np.deg2rad(np.clip(arr[:, 1] * 180.0, 30.0, 150.0))
+    ca, cb, cg = np.cos(A[:, 0]), np.cos(A[:, 1]), np.cos(A[:, 2])
+    vol = L[:, 0] * L[:, 1] * L[:, 2] * np.sqrt(
+        np.clip(1 - ca ** 2 - cb ** 2 - cg ** 2 + 2 * ca * cb * cg, 1e-9, None))
+    n = np.asarray(labels).reshape(len(arr), -1).sum(axis=1).clip(min=1)
+    return vol / n
 
 
 def probe_generator(generator, labels_all, z_dim, device, n=N_PROBE):
@@ -55,11 +68,16 @@ def probe_generator(generator, labels_all, z_dim, device, n=N_PROBE):
         'cell_a': out_z[0, :3] * 30.0,
         'valid': frac_valid,
         'mean_dist': float(dists.mean()),
+        'vpa': volume_per_atom(out_l, varied).mean(),
     }
     flag = '  <-- COLLAPSED (z is dead)' if m['std_z'] < Z_DEAD_THRESHOLD else ''
+    # Validity is meaningless without vpa beside it: inflating the lattice
+    # satisfies any minimum-distance criterion. Real Mg-Mn-O is 11.8 A^3/atom.
+    if not (VPA_OK[0] <= m['vpa'] <= VPA_OK[1]):
+        flag += f"  <-- CELL INFLATED (vpa {m['vpa']:.1f} vs real ~11.8)"
     print(f"  [probe] std_z={m['std_z']:.5f} std_label={m['std_label']:.5f} "
-          f"cell={np.round(m['cell_a'], 2)}A valid={m['valid'] * 100:.1f}% "
-          f"meanD={m['mean_dist']:.2f}A{flag}", flush=True)
+          f"cell={np.round(m['cell_a'], 2)}A vpa={m['vpa']:.1f} "
+          f"valid={m['valid'] * 100:.1f}% meanD={m['mean_dist']:.2f}A{flag}", flush=True)
     return m
 
 
