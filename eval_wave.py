@@ -173,6 +173,71 @@ def paired_energy(coords, labels, idx, real_coords, real_labels, n_e):
     return float(np.median(de)), float((de < 0.1).mean())
 
 
+def relaxed_energy(structs, steps=300):
+    """(energy/atom after CHGNet relaxation, RMSD in A moved by relaxation).
+
+    Stability in CDVAE/DiffCSP/MatterGen is judged after relaxation, so this is
+    the comparable number -- but a relaxer can turn garbage into a real crystal,
+    which is the trap in Metric Problems ("the relaxer is doing the work"). The
+    RMSD is reported beside it for that reason: a good generator lands close to
+    a minimum (MatterGen's RMSD-to-relaxed), a bad one gets rescued from far away.
+    """
+    from chgnet.model import StructOptimizer
+    from pymatgen.analysis.structure_matcher import StructureMatcher
+    opt = StructOptimizer()
+    sm = StructureMatcher(ltol=0.3, stol=0.5, angle_tol=10)
+    e, rmsd, fins = [], [], []
+    for st in structs:
+        if st is None:
+            e.append(np.nan); rmsd.append(np.nan); fins.append(None)
+            continue
+        try:
+            r = opt.relax(st, steps=steps, verbose=False)
+            fin = r['final_structure']
+            fins.append(fin)
+            e.append(float(r['trajectory'].energies[-1]) / len(fin))
+            rm = sm.get_rms_dist(st, fin)
+            rmsd.append(rm[0] if rm else np.inf)
+        except Exception:
+            e.append(np.nan); rmsd.append(np.nan); fins.append(None)
+    return np.array(e), np.array(rmsd), fins
+
+
+def paired_relaxed(coords, labels, idx, real_coords, real_labels, n_r, real_structs):
+    """Relaxed metrics vs the real partner, and novelty AFTER relaxation.
+
+    Returns (median dE, frac dE<0.1, median RMSD, frac novel after relaxation,
+    S.U.N. rate). Novelty before relaxation is cheap to fake: a distorted copy
+    of a training crystal matches nothing. A structure that relaxes back onto a
+    training crystal is not new. S.U.N. (MatterGen) = stable (dE<0.1 vs real),
+    unique among the relaxed set, and novel after relaxation, over all samples.
+    """
+    from pymatgen.analysis.structure_matcher import StructureMatcher
+    sm = StructureMatcher(ltol=0.3, stol=0.5, angle_tol=10)
+    by_formula = {}
+    for t in real_structs:
+        by_formula.setdefault(t.composition.reduced_formula, []).append(t)
+    k = min(n_r, len(coords))
+    gen = [one_structure(coords[i], labels[i]) if min_dist(coords[i], labels[i]) >= 0.5
+           else None for i in range(k)]
+    real = [one_structure(real_coords[j], real_labels[j]) for j in idx[:k]]
+    eg, rmsd, fins = relaxed_energy(gen)
+    er, _, _ = relaxed_energy(real)
+    de = eg - er
+    de = np.where(np.isnan(de), np.inf, de)
+    novel = np.array([f is not None and not any(
+        sm.fit(f, t) for t in by_formula.get(f.composition.reduced_formula, []))
+        for f in fins])
+    seen, uniq = [], np.zeros(len(fins), bool)
+    for i, f in enumerate(fins):
+        if f is not None and not any(sm.fit(f, g) for g in seen):
+            uniq[i] = True
+            seen.append(f)
+    sun = (de < 0.1) & novel & uniq
+    return (float(np.median(de)), float((de < 0.1).mean()), float(np.nanmedian(rmsd)),
+            float(novel.mean()), float(sun.mean()))
+
+
 def wasserstein(a, b):
     """1-D Wasserstein distance without scipy: mean |quantile difference|."""
     q = np.linspace(0, 1, 101)
@@ -192,7 +257,8 @@ def checkpoints(run):
     return out
 
 
-def evaluate(run, tag, ck, real_coords, real_labels, real_structs, real_vpa, n, cap, n_e):
+def evaluate(run, tag, ck, real_coords, real_labels, real_structs, real_vpa, n, cap, n_e,
+             n_r=0):
     gen, epoch, sf = load_generator(ck)
     coords, labels, idx = sample(gen, real_labels, n)
 
@@ -211,6 +277,8 @@ def evaluate(run, tag, ck, real_coords, real_labels, real_structs, real_vpa, n, 
                 v05=float((dists >= 0.5).mean()), v10=float((dists >= 1.0).mean()),
                 vpa=float(np.median(vpa)), wvpa=wasserstein(vpa, real_vpa),
                 de=de, de_ok=de_ok, uniq=uniq, novel=novel,
+                relaxed=(paired_relaxed(coords, labels, idx, real_coords, real_labels, n_r,
+                                        real_structs) if n_r > 0 else None),
                 stdz=std_z(gen, real_labels))
 
 
@@ -223,6 +291,9 @@ def main():
     ap.add_argument('--n_energy', type=int, default=200,
                     help='samples scored with CHGNet (~50 ms each, x2 for the real '
                          'partner). 0 = skip energy.')
+    ap.add_argument('--n_relax', type=int, default=0,
+                    help='samples relaxed with CHGNet (~seconds each, x2 for the '
+                         'real partner). 0 = skip. Use on the winning config only.')
     ap.add_argument('--seed', type=int, default=0)
     ap.add_argument('--dataset', default='datasets/mgmno_100.pickle')
     a = ap.parse_args()
@@ -254,6 +325,11 @@ def main():
               f"{m['vpa']:>7.1f}{m['wvpa']:>8.2f}{m['de']:>7.2f}{m['de_ok']*100:>7.0f}"
               f"{m['uniq']*100:>6.0f}{m['novel']*100:>7.0f}{m['stdz']:>8.4f}  {note}",
               flush=True)
+        if m.get('relaxed'):
+            rde, rok, rmsd, rnov, sun = m['relaxed']
+            print(f"{'':<18}{'':>5}{'':>5}  relaxed: dE {rde:.2f}  dE<0.1 {rok*100:.0f}%"
+                  f"  RMSD {rmsd:.2f} A  novel {rnov*100:.0f}%  S.U.N. {sun*100:.0f}%",
+                  flush=True)
 
     # The training-free baseline goes in the table, always. It beats the model
     # on validity, density and novelty; omitting a baseline that wins on four
@@ -275,7 +351,10 @@ def main():
         row('substitution', '--', '--',
             dict(v05=(d >= 0.5).mean(), v10=(d >= 1.0).mean(), vpa=np.median(v),
                  wvpa=wasserstein(v, real_vpa), de=de, de_ok=de_ok, uniq=u,
-                 novel=nv, stdz=float('nan')), 'TRAINING-FREE BASELINE')
+                 novel=nv, stdz=float('nan'),
+                 relaxed=(paired_relaxed(sub, sub_lab, sub_idx, real_coords,
+                                         real_labels, a.n_relax, real_structs)
+                          if a.n_relax else None)), 'TRAINING-FREE BASELINE')
     except Exception as e:
         print(f"{'substitution':<18}  baseline failed: {str(e)[:50]}")
 
@@ -287,7 +366,7 @@ def main():
         for tag, ck in cks:
             try:
                 m = evaluate(r, tag, ck, real_coords, real_labels, real_structs,
-                             real_vpa, a.n, a.cap, a.n_energy)
+                             real_vpa, a.n, a.cap, a.n_energy, a.n_relax)
             except Exception as e:
                 print(f'{os.path.basename(r):<18}{tag:>5}  ERROR: {str(e)[:60]}')
                 continue

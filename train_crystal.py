@@ -288,7 +288,7 @@ N_G = 12
 G_VECTORS = miller_set(N_G)
 
 
-def mode_seeking_loss(generator, z, labels, z_dim, device):
+def mode_seeking_loss(generator, z, labels, z_dim, device, form='neg'):
     """Reward the generator for making z matter (Mao et al. 2019, MSGAN).
 
         L = - mean( ||G(z1,l) - G(z2,l)||_1 / ||z1 - z2||_1 )
@@ -305,13 +305,22 @@ def mode_seeking_loss(generator, z, labels, z_dim, device):
 
     Costs one extra generator forward per G step (~110 ms, and G steps are one
     batch in five).
+
+    form='neg' is -ratio, which is unbounded: it keeps paying for spread long
+    after z is alive. In every w7/w8 run the term grew from -0.03 at epoch 100
+    to -0.08 by 250 while the NN-distance loss doubled and validity fell 79% ->
+    38% -- the late decay is diversity bought with geometry, not collapse.
+    form='inv' is the original MSGAN loss, 1/(ratio + eps): strongest near
+    collapse, fading as 1/ratio^2 once samples differ. Matching gradients at the
+    healthy ratio ~0.03 puts lambda_inv ~ lambda_neg * 0.03^2 (2.0 -> 0.002).
     """
     z2 = torch.randn_like(z)
     out1 = generator(torch.cat([z, labels], dim=1))
     out2 = generator(torch.cat([z2, labels], dim=1))
     d_out = (out1 - out2).abs().mean(dim=1)
     d_z = (z - z2).abs().mean(dim=1)
-    return -(d_out / (d_z + 1e-5)).mean()
+    ratio = (d_out / (d_z + 1e-5)).mean()
+    return 1.0 / (ratio + 1e-5) if form == 'inv' else -ratio
 
 
 def sf_consistency_loss(rho, fake, labels, g=None):
@@ -601,7 +610,8 @@ def train(args):
                 # floor, an inflated cell is penalised even though it makes
                 # validity easier, and neither goes quiet until the generated
                 # distribution actually matches real.
-                l_ms = (mode_seeking_loss(generator, z, labels, z_dim, device)
+                l_ms = (mode_seeking_loss(generator, z, labels, z_dim, device,
+                                          args.mode_seek_form)
                         if lambda_ms > 0 else torch.zeros((), device=device))
                 l_nn = (nn_distribution_loss(fake_imgs, labels) if lambda_nn > 0
                         else torch.zeros((), device=device))
@@ -831,6 +841,11 @@ if __name__ == "__main__":
                              "from different z at the SAME label. Every other "
                              "term here is satisfiable without z, which is why "
                              "std_z decays to 0.002; this one is not.")
+    parser.add_argument("--mode_seek_form",   type=str,   default="neg",
+                        choices=["neg", "inv"],
+                        help="'neg' = -ratio (unbounded; waves 7-9). 'inv' = the "
+                             "original MSGAN 1/(ratio+eps), which fades once z is "
+                             "alive. Use ~0.002 weight with 'inv'.")
     parser.add_argument("--lambda_nn",       type=float, default=0.0,
                         help="Weight on nearest-neighbour DISTANCE DISTRIBUTION "
                              "matching (1-D Wasserstein to the measured real "
