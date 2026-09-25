@@ -9,8 +9,12 @@ from torch.utils.data import DataLoader, TensorDataset
 from torch.optim import Adam
 import torch.autograd as autograd
 from models.QINR_Crystal import PQWGAN_CC_Crystal
-from probe_collapse import probe_generator
+from probe_collapse import probe_generator, VPA_OK, Z_DEAD_THRESHOLD
+import crystal_mic
 from crystal_mic import min_separation_matrix
+from crystal_physics import (lattice_matrix, madelung_energy, madelung_penalty,
+                             miller_set, nn_distribution_loss, structure_factor,
+                             structure_factor_features, vpa_distribution_loss)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -138,23 +142,20 @@ class QHead(nn.Module):
 _SEP = torch.from_numpy(min_separation_matrix())
 
 
-def _lattice(fake):
-    """(B, 3, 3) lattice matrix in Angstrom from the generated cell head."""
-    arr     = fake.view(fake.shape[0], 30, 3)
-    lengths = arr[:, 0] * 30.0
-    angles  = torch.deg2rad(torch.clamp(arr[:, 1] * 180.0, 30.0, 150.0))
-    a, b, c    = lengths[:, 0], lengths[:, 1], lengths[:, 2]
-    al, be, ga = angles[:, 0], angles[:, 1], angles[:, 2]
+def set_floors(name):
+    """Select the contact-floor set and rebuild the cached matrix.
 
-    # Rows are lattice vectors (same construction as eval_v4:build_lattice_matrix).
-    zero = torch.zeros_like(a)
-    v1 = torch.stack([a, zero, zero], dim=-1)
-    v2 = torch.stack([b * torch.cos(ga), b * torch.sin(ga), zero], dim=-1)
-    cx = c * torch.cos(be)
-    cy = c * (torch.cos(al) - torch.cos(be) * torch.cos(ga)) / (torch.sin(ga) + 1e-9)
-    cz = torch.sqrt(torch.clamp(c ** 2 - cx ** 2 - cy ** 2, min=1e-6))
-    v3 = torch.stack([cx, cy, cz], dim=-1)
-    return torch.stack([v1, v2, v3], dim=1)               # (B, 3, 3)
+    _SEP is built at import time, so changing floors without this is a no-op --
+    the flag would appear to work and change nothing.
+    """
+    global _SEP
+    crystal_mic.set_floors(name)
+    _SEP = torch.from_numpy(min_separation_matrix())
+
+
+# One lattice definition, in crystal_physics. The local copy that used to live
+# here is exactly the pattern that produced six divergent distance checks.
+_lattice = lattice_matrix
 
 
 # Measured on datasets/mgmno_100.pickle: volume per atom 11.77 +/- 1.84 A^3,
@@ -163,7 +164,7 @@ def _lattice(fake):
 VPA_LO, VPA_HI = 10.0, 15.6
 
 
-def volume_penalty(fake, labels, lo=VPA_LO, hi=VPA_HI):
+def volume_penalty(fake, labels, lo=None, hi=None):
     """Keep volume per atom inside the range real Mg-Mn-O oxides occupy.
 
     Without this, inflating the lattice is the cheapest way to satisfy the
@@ -175,6 +176,8 @@ def volume_penalty(fake, labels, lo=VPA_LO, hi=VPA_HI):
     Log-space hinge so it is scale-free, with a dead zone across the real
     percentile range so the model is constrained but not pinned to the mean.
     """
+    lo = VPA_LO if lo is None else lo
+    hi = VPA_HI if hi is None else hi
     lat = _lattice(fake)
     vol = torch.linalg.det(lat).abs()                     # (B,)
     n   = labels.sum(dim=1).clamp(min=1.0)
@@ -199,7 +202,12 @@ def _pair_distances(fake, labels):
     df   = frac.unsqueeze(2) - frac.unsqueeze(1)          # (B, 28, 28, 3)
     df   = df - torch.round(df)                           # minimum image
     cart = torch.matmul(df, lattice.unsqueeze(1))         # (B, 28, 28, 3)
-    return torch.linalg.norm(cart + 1e-12, dim=-1)        # (B, 28, 28)
+    # sqrt(sum^2 + eps), NOT norm(cart + 1e-12). The gradient of a norm at zero
+    # is cart/norm, which reaches ~1e12 when two atoms coincide and takes the
+    # whole G loss to NaN -- this run NaN'd at epoch 2 and then trained on NaN
+    # for 40 epochs without a single warning. The epsilon bounds the gradient at
+    # 1e3, and distances below 1e-3 A are physically meaningless anyway.
+    return torch.sqrt((cart ** 2).sum(dim=-1) + 1e-6)     # (B, 28, 28)
 
 
 def min_dist_penalty(fake, labels, threshold=1.0, species_aware=True):
@@ -242,7 +250,12 @@ def geometry_features(x, labels, k=8):
     contact distances makes "this structure has atoms on top of each other" a
     feature rather than something it must learn to compute.
     """
-    d = _pair_distances(x, labels)                                   # (B, 28, 28)
+    # Clamp before the critic sees it. These features are inside the gradient
+    # penalty, which takes a SECOND derivative: sqrt(x + 1e-6) has d2/dx2 of
+    # -1/(4(x+eps)^1.5) ~ -2.5e8 near zero, so bounding the first derivative is
+    # not enough and the GP goes NaN (observed at epoch 111). 0.3 A is far below
+    # any physical contact, so this never binds on a plausible structure.
+    d = _pair_distances(x, labels).clamp(min=0.3)                    # (B, 28, 28)
     occ = labels.unsqueeze(2) * labels.unsqueeze(1)
     pair = occ * (1.0 - torch.eye(28, device=x.device)).unsqueeze(0)
     # Non-pairs pushed out of the way so they never enter the k smallest.
@@ -257,12 +270,76 @@ def geometry_features(x, labels, k=8):
 USE_GEOMETRY_FEATURES = True
 GEOM_K = 8
 
+# Diffraction intensities |S(G)|^2 over the 12 smallest Miller indices. The
+# critic can no more infer periodicity from 90 raw numbers than it could infer
+# contact distances -- and periodicity is what separates a crystal from a bag of
+# atoms. Measured on real data: 47% of these reflections are extinguished by
+# destructive interference against 10% for scrambled coordinates, so this is a
+# strong signal rather than a decorative one.
+#
+# 12 matches the qubit count deliberately: the quantum structure-factor readout
+# emits an amplitude per qubit over this same Miller set.
+# Default OFF. Left on by default this silently changed the critic for every
+# run, including the v10 reference (input dim 138 against 126), so nothing could
+# be compared to the published v10 numbers and the feature's own effect could not
+# be isolated. Set by --sf_features.
+USE_SF_FEATURES = False
+N_G = 12
+G_VECTORS = miller_set(N_G)
+
+
+def mode_seeking_loss(generator, z, labels, z_dim, device):
+    """Reward the generator for making z matter (Mao et al. 2019, MSGAN).
+
+        L = - mean( ||G(z1,l) - G(z2,l)||_1 / ||z1 - z2||_1 )
+
+    Every other term in this objective is satisfiable by a deterministic map
+    from label to structure: the WGAN critic sees a batch, and the distribution
+    losses are pooled over one, so label variety alone reproduces the real
+    distribution and z contributes nothing. The trunk then zeroes its own z
+    weights -- measured as std_z decaying to 0.002 in every wave 5 run, and to
+    0.005 in wave 6 at a fifth of the weight.
+
+    This is the only term that is *unsatisfiable* without z, because it compares
+    two outputs at the SAME label that differ only in z.
+
+    Costs one extra generator forward per G step (~110 ms, and G steps are one
+    batch in five).
+    """
+    z2 = torch.randn_like(z)
+    out1 = generator(torch.cat([z, labels], dim=1))
+    out2 = generator(torch.cat([z2, labels], dim=1))
+    d_out = (out1 - out2).abs().mean(dim=1)
+    d_z = (z - z2).abs().mean(dim=1)
+    return -(d_out / (d_z + 1e-5)).mean()
+
+
+def sf_consistency_loss(rho, fake, labels, g=None):
+    """Tie the circuit's emitted amplitudes to the crystal that was produced.
+
+        L = || rho_circuit(G) - S_analytic(G) ||^2
+
+    This is what stops the structure-factor readout being decorative. Without
+    it the circuit could emit anything and the residual path around it would
+    absorb the difference; with it the circuit has its own target and must
+    genuinely encode the density it is claiming to describe.
+
+    Both sides are bounded: expectation values lie in [-1, 1] and S is
+    normalised by sum_j f_j, so no rescaling is needed between them.
+    """
+    g = G_VECTORS if g is None else g
+    re, im = structure_factor(fake, labels, g)
+    target = torch.stack([re, im], dim=-1)                # (B, n_g, 2)
+    return ((rho - target) ** 2).mean()
+
 
 def critic_input(x, labels):
-    """Everything the critic sees: structure, label, and contact geometry."""
+    """Everything the critic sees: structure, label, geometry, diffraction."""
     parts = [x, labels]
     if USE_GEOMETRY_FEATURES:
         parts.append(geometry_features(x, labels, k=GEOM_K))
+    if USE_SF_FEATURES:
+        parts.append(structure_factor_features(x, labels, G_VECTORS))
     return torch.cat(parts, dim=1)
 
 
@@ -272,7 +349,26 @@ def critic_input(x, labels):
 def train(args):
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # The circuit simulation does not thread: measured 257.7 ms/batch at one
+    # thread against 281.6 ms at sixteen, i.e. contention makes it slower. One
+    # thread per process and many processes in parallel is ~14x the throughput
+    # of a single wide run. See bench_device.py.
+    torch.set_num_threads(args.num_threads)
+    global USE_SF_FEATURES, VPA_LO, VPA_HI
+    VPA_LO, VPA_HI = args.vpa_lo, args.vpa_hi
+    print(f"Volume prior: {VPA_LO}-{VPA_HI} A^3/atom (real median 11.25)")
+    USE_SF_FEATURES = args.sf_features
+    set_floors(args.floors)
+    print(f"Contact floors: {args.floors}  |  Mg-Mg {_SEP[0, 0]:.2f} A, "
+          f"O-O {_SEP[-1, -1]:.2f} A")
+    # Default cpu, deliberately. bench_device.py measures this workload as
+    # SLOWER on the RTX 5080 than on CPU -- 119 s/epoch against 93 -- because at
+    # 12 qubits the state vector is 4096 complex numbers and the circuit
+    # simulation is kernel-launch bound. Auto-selecting cuda also breaks
+    # parallel runs outright: eight processes each claiming a GPU context
+    # exhausted VRAM and took five of eight down with allocation failures.
+    # Revisit above ~20 qubits, where the state vector gets big enough to win.
+    device = torch.device(args.device)
     print(f"Using device: {device}  |  seed: {args.seed}")
 
     # ── Dataset ──────────────────────────────────────────────────────────────
@@ -298,7 +394,9 @@ def train(args):
 
     # ── Model ─────────────────────────────────────────────────────────────────
     gen_input_dim    = z_dim + label_dim        # generator: noise + label
-    critic_input_dim = data_dim + label_dim + (GEOM_K if USE_GEOMETRY_FEATURES else 0)
+    critic_input_dim = (data_dim + label_dim
+                        + (GEOM_K if USE_GEOMETRY_FEATURES else 0)
+                        + (N_G if USE_SF_FEATURES else 0))
     print("Initializing QINR Crystal Model...")
     gan = PQWGAN_CC_Crystal(
         input_dim_g   = gen_input_dim,
@@ -308,11 +406,24 @@ def train(args):
         hidden_layers   = args.hidden_layers,
         spectrum_layer  = args.spectrum_layer,
         use_noise       = args.use_noise,
+        sf_head         = args.sf_head,
+        split_head      = not args.no_split_head,
     )
 
     generator = gan.generator.to(device)
     critic    = gan.critic.to(device)
     q_head    = QHead(data_dim=data_dim).to(device)
+
+    # ── DFT-surrogate force distillation (optional, needs chgnet) ─────────────
+    distiller = None
+    if args.lambda_force > 0:
+        from dft_distill import ForceDistiller, measure_force_gate
+        gate = (args.force_gate if args.force_gate > 0 else
+                measure_force_gate(train_data_coords, train_data_labels, n=48))
+        distiller = ForceDistiller(k=args.force_k, every=args.force_every,
+                                   gate=gate, device=device)
+        print(f"Force distillation on: k={args.force_k}, every={args.force_every} "
+              f"G-steps, gate={gate:.3f} eV/A (real-data p90)")
 
     # ── Optimizers ────────────────────────────────────────────────────────────
     # Per specification: lr_critic=0.00005, lr_generator=0.000025
@@ -326,13 +437,23 @@ def train(args):
     # Min-distance penalty ramps in so the WGAN signal stabilises first.
     lambda_dist = args.lambda_dist
     lambda_vol  = args.lambda_vol
-    warmup_dist = 20
+    warmup_dist = args.warmup_dist
+    lambda_mad  = args.lambda_madelung
+    lambda_sf   = args.lambda_sf
+    lambda_nn   = args.lambda_nn
+    lambda_vd   = args.lambda_vpa_dist
+    lambda_ms   = args.lambda_mode_seek
 
     # ── Loss tracking ─────────────────────────────────────────────────────────
     epoch_losses = {
         'epoch': [], 'd_loss': [], 'wasserstein': [],
         'q_real_loss': [], 'q_fake_loss': [], 'dist_loss': [], 'total_g_loss': []
     }
+
+    # Best-checkpoint tracking. A peak is not a result, but losing the peak
+    # entirely is worse -- v10's 78.1% at epoch 20 was only recoverable because
+    # save_interval happened to land on it.
+    best = {'valid': -1.0, 'epoch': -1, 'vpa': float('nan'), 'std_z': float('nan')}
 
     start_epoch = 0
     if args.resume_checkpoint and os.path.exists(args.resume_checkpoint):
@@ -360,7 +481,14 @@ def train(args):
 
             z         = torch.randn(bs, z_dim).to(device)
             gen_input = torch.cat([z, labels], dim=1)
-            fake_imgs = generator(gen_input).detach()   # no G gradients here
+            # no_grad, not .detach(): detach builds the full autograd graph
+            # through both quantum circuits and then discards it. The critic
+            # step never backpropagates into G, so that graph is pure waste --
+            # measured 110.4 ms with grad against 76.8 ms without, on 325
+            # batches an epoch. BatchNorm running stats update either way, so
+            # this is numerically identical.
+            with torch.no_grad():
+                fake_imgs = generator(gen_input)
 
             d_real    = critic(critic_input(real_imgs, labels))
             d_fake    = critic(critic_input(fake_imgs, labels))
@@ -371,7 +499,12 @@ def train(args):
 
             # Critic loss is pure WGAN-GP now.
             d_loss = l_critic + lambda_gp * gp
+            if not torch.isfinite(d_loss):
+                raise RuntimeError(
+                    f"d_loss is {d_loss.item()} at epoch {epoch} batch {i} "
+                    f"(gp={gp.item():.4g}). Aborting rather than training on NaN.")
             d_loss.backward()
+            torch.nn.utils.clip_grad_norm_(critic.parameters(), 10.0)
             optimizer_C.step()
 
             # Q-Head trains on its own full-weight objective. Folding it into
@@ -404,11 +537,51 @@ def train(args):
                 l_dist = min_dist_penalty(fake_imgs, labels)
                 # Stops the model buying validity by inflating the lattice.
                 l_vol  = volume_penalty(fake_imgs, labels)
+                # Electrostatics: the classical part of the Kohn-Sham energy.
+                # Hinged into the real range, never minimised -- minimising an
+                # energy is satisfied by emitting one maximally-ionic
+                # arrangement every time, which is the collapse mode this
+                # project spent v4-v8 escaping.
+                l_mad  = (madelung_penalty(fake_imgs, labels) if lambda_mad > 0
+                          else torch.zeros((), device=device))
+                # Force the quantum readout to be an actual structure factor.
+                l_sf   = (sf_consistency_loss(generator.last_rho, fake_imgs, labels)
+                          if (lambda_sf > 0 and generator.last_rho is not None)
+                          else torch.zeros((), device=device))
 
-                # Total G loss: WGAN + composition + geometry validity
-                g_loss = g_wgan + lambda_q * l_q_fake + dist_w * l_dist + lambda_vol * l_vol
+                # DFT-surrogate energy descent. Costs one CHGNet forward, no
+                # backward through it -- see dft_distill for why that is exact.
+                l_force = (distiller.loss(fake_imgs, labels) if distiller is not None
+                           else torch.zeros((), device=device))
+                # Distribution matching. Unlike the hinges these are two-sided:
+                # a contact at 1.1 A is penalised even though it clears every
+                # floor, an inflated cell is penalised even though it makes
+                # validity easier, and neither goes quiet until the generated
+                # distribution actually matches real.
+                l_ms = (mode_seeking_loss(generator, z, labels, z_dim, device)
+                        if lambda_ms > 0 else torch.zeros((), device=device))
+                l_nn = (nn_distribution_loss(fake_imgs, labels) if lambda_nn > 0
+                        else torch.zeros((), device=device))
+                l_vd = (vpa_distribution_loss(fake_imgs, labels) if lambda_vd > 0
+                        else torch.zeros((), device=device))
 
+                # Total G loss: WGAN + composition + geometry + electrostatics
+                #               + reciprocal-space consistency + DFT forces
+                g_loss = (g_wgan + lambda_q * l_q_fake + dist_w * l_dist
+                          + lambda_vol * l_vol + lambda_mad * l_mad
+                          + lambda_sf * l_sf + args.lambda_force * l_force
+                          + lambda_nn * l_nn + lambda_vd * l_vd
+                          + lambda_ms * l_ms)
+
+                if not torch.isfinite(g_loss):
+                    raise RuntimeError(
+                        f"g_loss is {g_loss.item()} at epoch {epoch} batch {i}. "
+                        f"Components: wgan={g_wgan.item():.4g} q={l_q_fake.item():.4g} "
+                        f"dist={l_dist.item():.4g} vol={l_vol.item():.4g} "
+                        f"mad={l_mad.item():.4g} sf={l_sf.item():.4g}. "
+                        f"Training on NaN silently wastes the entire run.")
                 g_loss.backward()
+                torch.nn.utils.clip_grad_norm_(generator.parameters(), 10.0)
                 optimizer_G.step()
 
                 ep_qf   += l_q_fake.item()
@@ -420,7 +593,13 @@ def train(args):
                     print(f"[Epoch {epoch}/{args.n_epochs}] [Batch {i}/{len(dataloader)}] "
                           f"[D: {d_loss.item():.3f}] [W: {wasserstein.item():.3f}] "
                           f"[Q_real: {l_q_real.item():.3f}] [Q_fake: {l_q_fake.item():.3f}] "
-                          f"[Dist: {l_dist.item():.4f}] [Vol: {l_vol.item():.4f}] [dist_w: {dist_w:.2f}]")
+                          f"[Dist: {l_dist.item():.4f}] [Vol: {l_vol.item():.4f}] "
+                          f"[Mad: {l_mad.item():.4f}] [SF: {l_sf.item():.4f}] "
+                          f"[NN: {l_nn.item():.4f}] [VD: {l_vd.item():.4f}] "
+                          f"[MS: {l_ms.item():.4f}] "
+                          f"[F: {l_force.item():.4f}"
+                          f"{f'/{distiller.last_n}' if distiller else ''}] "
+                          f"[dist_w: {dist_w:.2f}]")
 
         # ── Checkpoint ────────────────────────────────────────────────────────
         if epoch % args.save_interval == 0:
@@ -434,7 +613,31 @@ def train(args):
             print(f"Saved checkpoint to {save_path}")
             # Collapse probe: dead z shows up here at epoch 10 instead of after
             # 500 epochs and a CHGNet run.
-            probe_generator(generator, train_data_labels, z_dim, device)
+            m = probe_generator(generator, train_data_labels, z_dim, device)
+
+            # Keep the best checkpoint, not the last. v10's best point was epoch
+            # 20 and the run degraded to less than half that by epoch 40, so
+            # training to completion silently discards the result.
+            #
+            # Selection is gated, not on validity alone: a checkpoint only
+            # qualifies if the cell is not inflated and z is not collapsed.
+            # Validity on its own is exactly the metric v9 scored 98.8% on with
+            # a 6x-oversized box.
+            ok = (VPA_OK[0] <= m['vpa'] <= VPA_OK[1]
+                  and m['std_z'] >= Z_DEAD_THRESHOLD)
+            if ok and m['valid'] > best['valid']:
+                best = {'valid': m['valid'], 'epoch': epoch,
+                        'vpa': m['vpa'], 'std_z': m['std_z']}
+                torch.save({'generator': generator.state_dict(),
+                            'critic':    critic.state_dict(),
+                            'q_head':    q_head.state_dict(),
+                            'epoch':     epoch, 'probe': m},
+                           os.path.join(args.out_folder, "checkpoint_best.pt"))
+                print(f"  [best] new best: {m['valid'] * 100:.1f}% valid at "
+                      f"{m['vpa']:.1f} A^3/atom, epoch {epoch}")
+            elif not ok:
+                print(f"  [best] epoch {epoch} not eligible "
+                      f"(vpa {m['vpa']:.1f}, std_z {m['std_z']:.4f})")
 
         # ── LR decay — matches classical GAN: lr *= 0.99 every 10 epochs ────────
         if (epoch + 1) % 10 == 0:
@@ -486,6 +689,16 @@ def train(args):
                              epoch_losses['total_g_loss'][i]])
     print(f"Saved training loss history to {csv_path}")
 
+    if best['epoch'] >= 0:
+        print(f"\nBest checkpoint: epoch {best['epoch']}, "
+              f"{best['valid'] * 100:.1f}% valid at {best['vpa']:.1f} A^3/atom, "
+              f"std_z {best['std_z']:.4f}  ->  checkpoint_best.pt")
+        print("Report this next to volume per atom, never alone, and confirm it "
+              "across seeds before it goes in a table.")
+    else:
+        print("\nNo checkpoint qualified: every probe was cell-inflated or "
+              "z-collapsed. Nothing here is reportable.")
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
@@ -519,6 +732,103 @@ if __name__ == "__main__":
                              "penalty starts rewarding lattice inflation.")
     parser.add_argument("--lambda_q",        type=float, default=0.3,
                         help="Weight on the Q-Head composition loss in the G objective.")
+    parser.add_argument("--floors",          type=str,   default="literature",
+                        choices=["literature", "data", "bond"],
+                        help="Species-aware contact floor set. 'literature' is "
+                             "the v9/v10 0.8x-bond-length heuristic, which 16.3%% "
+                             "of the real training rows violate -- putting the "
+                             "distance penalty and the WGAN critic in conflict on "
+                             "a sixth of the data. 'data' derives them from the "
+                             "0.5th percentile of the measured distribution (1.5%% "
+                             "violated). Default stays 'literature' so prior runs "
+                             "reproduce; use 'data' for new ones.")
+    parser.add_argument("--warmup_dist",     type=int,   default=20,
+                        help="Epochs over which the distance penalty ramps to full "
+                             "strength. v10 peaks at exactly this epoch and then "
+                             "degrades; see the regression section of the "
+                             "Experiment Log.")
+    parser.add_argument("--lambda_madelung", type=float, default=0.0,
+                        help="Weight on the Ewald electrostatic hinge. Defaults to "
+                             "0 (off) so each new term is attributable in the "
+                             "ablation. Raw values are O(1-100) eV^2/atom^2.")
+    parser.add_argument("--sf_head",         action="store_true",
+                        help="Read the trunk's last circuit in reciprocal space: "
+                             "qubit i carries the density amplitude rho(G_i) for "
+                             "the i-th smallest Miller index, via <Z_i> and <X_i> "
+                             "from one circuit evaluation. Requires "
+                             "hidden_features == N_G (12).")
+    parser.add_argument("--lambda_sf",       type=float, default=0.0,
+                        help="Weight on the structure-factor consistency loss, "
+                             "which forces the circuit's amplitudes to match the "
+                             "analytic S(G) of the emitted crystal. Without it the "
+                             "readout is decorative -- the residual path routes "
+                             "around the circuit. Needs --sf_head.")
+    parser.add_argument("--lambda_force",    type=float, default=0.0,
+                        help="Weight on CHGNet force distillation: exact "
+                             "first-order descent on the DFT-surrogate energy, "
+                             "at the cost of one CHGNet forward (no backward "
+                             "through it). The only term that touches E_hull "
+                             "directly. 0 = off.")
+    parser.add_argument("--force_k",         type=int,   default=4,
+                        help="Structures per force-distillation call (~24 ms each).")
+    parser.add_argument("--force_every",     type=int,   default=5,
+                        help="Apply force distillation every N generator steps.")
+    parser.add_argument("--force_gate",      type=float, default=0.0,
+                        help="Force norm (eV/A) below which a structure is left "
+                             "alone. 0 = measure the real-data p90 at startup, "
+                             "which is what makes this pull bad geometry toward "
+                             "the DFT basin rather than dragging every sample "
+                             "toward a single minimum.")
+    parser.add_argument("--lambda_mode_seek", type=float, default=0.0,
+                        help="Weight on the mode-seeking term (MSGAN). Rewards "
+                             "the generator for producing different structures "
+                             "from different z at the SAME label. Every other "
+                             "term here is satisfiable without z, which is why "
+                             "std_z decays to 0.002; this one is not.")
+    parser.add_argument("--lambda_nn",       type=float, default=0.0,
+                        help="Weight on nearest-neighbour DISTANCE DISTRIBUTION "
+                             "matching (1-D Wasserstein to the measured real "
+                             "distribution, median 1.99 A). Two-sided, so unlike "
+                             "min_dist_penalty it penalises 1.1 A contacts that "
+                             "clear every floor, and does not go quiet once a "
+                             "floor is cleared. Use with --lambda_dist 0.")
+    parser.add_argument("--lambda_vpa_dist",  type=float, default=0.0,
+                        help="Weight on volume-per-atom DISTRIBUTION matching. "
+                             "Replaces the [10.0, 15.6] hinge whose ceiling the "
+                             "model saturated at 15.5 against a real 11.25. "
+                             "Use with --lambda_vol 0.")
+    parser.add_argument("--vpa_lo",          type=float, default=VPA_LO,
+                        help="Lower bound of the volume-per-atom prior.")
+    parser.add_argument("--vpa_hi",          type=float, default=VPA_HI,
+                        help="Upper bound of the volume-per-atom prior. The "
+                             "default 15.6 is the real p95, and the model "
+                             "saturates it: raising lambda_dist drove vpa to "
+                             "15.5 and bought 94.5%% validity worth +6.5 eV/atom. "
+                             "A one-sided hinge is a target, so this ceiling is "
+                             "where the model will sit.")
+    parser.add_argument("--sf_features",     action="store_true",
+                        help="Give the critic |S(G)|^2 diffraction intensities "
+                             "over the 12 smallest Miller indices, alongside the "
+                             "contact geometry. Off by default so the baseline "
+                             "reproduces v10 exactly (critic input dim 126).")
+    parser.add_argument("--no_split_head", action="store_true",
+                        help="Quantum trunk with a SINGLE head emitting all 90 "
+                             "outputs. This is the ablation reviewers asked for: "
+                             "without a quantum-but-not-split model the split "
+                             "head's contribution cannot be isolated. Output "
+                             "ranges are mapped identically to the split version, "
+                             "so the head structure is the only difference.")
+    parser.add_argument("--device",          type=str,   default="cpu",
+                        choices=["cpu", "cuda"],
+                        help="Compute device. Default cpu: measured faster than "
+                             "cuda for this qubit count (see bench_device.py), "
+                             "and required for running seeds in parallel, since "
+                             "concurrent CUDA contexts exhaust VRAM.")
+    parser.add_argument("--num_threads",     type=int,   default=1,
+                        help="torch intra-op threads. Default 1: the quantum "
+                             "circuit does not parallelise, so the throughput "
+                             "win comes from running many single-threaded seeds "
+                             "at once, not from one wide run.")
     parser.add_argument("--plateau_window",   type=int,   default=30,
                         help="Epochs to look back for plateau detection. 0 = disabled.")
     parser.add_argument("--plateau_tol",      type=float, default=0.02,

@@ -8,12 +8,19 @@ import torch.nn.functional as F
 from crystal_mic import BOX_OFFSET, BOX_SCALE
 
 class HybridLayer(nn.Module):
-    def __init__(self, in_features, out_features, spectrum_layer, use_noise, bias=True, idx=0):
+    def __init__(self, in_features, out_features, spectrum_layer, use_noise, bias=True,
+                 idx=0, readout='z'):
         super().__init__()
         self.idx = idx
+        self.readout = readout
         self.clayer = nn.Linear(in_features, out_features, bias=bias)
         self.norm = nn.BatchNorm1d(out_features)
-        self.qlayer = QuantumLayer(out_features, spectrum_layer, use_noise)
+        self.qlayer = QuantumLayer(out_features, spectrum_layer, use_noise, readout=readout)
+        # Set by forward when readout='zx': (B, n_qubits, 2), the complex
+        # amplitude rho(G_i) read off qubit i. Stashed rather than returned so
+        # the generator's 90-dim output signature stays what ten eval_*.py
+        # scripts already expect.
+        self.rho = None
 
     def forward(self, x):
         # BatchNorm was constructed here but never applied, which left the RZ
@@ -22,18 +29,46 @@ class HybridLayer(nn.Module):
         # high-variance z block collapsed to zero. That is what killed z in
         # v4-v6 (std 8e-4 against 0.08 for the label).
         x1 = self.norm(self.clayer(x))
+        out = self.qlayer(x1)
+        if self.readout == 'zx':
+            # <Z_i> and <X_i> come out of ONE circuit evaluation -- a second
+            # observable costs 14% in simulation, not another forward pass. The
+            # Z half is bit-for-bit what the 'z' readout returns, so the trunk
+            # signal below is unchanged and the ablation stays clean.
+            z, x_obs = out.chunk(2, dim=-1)
+            self.rho = torch.stack([z, x_obs], dim=-1)
+            out = z
         # Residual: the circuit still contributes at every layer, but gradients
         # keep a path home so the trunk cannot starve its own input.
-        return self.qlayer(x1) + x1
+        return out + x1
 
 
 class QuantumLayer(nn.Module):
-    def __init__(self, in_features, spectrum_layer, use_noise):
+    """Data-reupload circuit.
+
+    With readout='zx' the circuit is additionally interpreted as a *structure
+    factor generator*: qubit i is bound to reciprocal lattice vector G_i, and
+    (<Z_i>, <X_i>) are the real and imaginary parts of the density amplitude
+    rho(G_i).
+
+    That interpretation is not decorative. A data-reupload circuit represents
+    exactly a truncated Fourier series in its inputs (Schuld, Sweke & Meyer
+    2021), and a plane-wave expansion of a crystal's density is exactly a
+    truncated Fourier series on the same 3-torus. Reading the circuit in
+    reciprocal space therefore puts it in the one basis where it is natively
+    expressive, and turns the qubit count into a physical quantity: n qubits is
+    n plane waves, i.e. the resolution of the density description. That makes
+    the queued {8, 12, 16} qubit sweep a measurement of representational
+    capacity rather than a bottleneck check.
+    """
+
+    def __init__(self, in_features, spectrum_layer, use_noise, readout='z'):
         super().__init__()
 
         self.in_features = in_features
         self.n_layer = spectrum_layer
         self.use_noise = use_noise
+        self.readout = readout
 
         def _circuit(inputs, weights1, weights2):
             for i in range(self.n_layer):
@@ -50,6 +85,11 @@ class QuantumLayer(nn.Module):
             res = []
             for i in range(self.in_features):
                 res.append(qml.expval(qml.PauliZ(i)))
+            if self.readout == 'zx':
+                # Im rho(G_i). Measured in the same circuit evaluation; only the
+                # observable differs, so this is ~14% not 100% extra cost.
+                for i in range(self.in_features):
+                    res.append(qml.expval(qml.PauliX(i)))
             return res
 
         # PL 0.38+ unified default.qubit auto-detects PyTorch/CUDA interface.
@@ -92,7 +132,8 @@ class SetAtomHead(nn.Module):
     modulates all 28 placements rather than being a bottleneck they pass through.
     """
 
-    def __init__(self, d_model=128, n_heads=4, n_blocks=2, n_slots=28, trunk_dim=256):
+    def __init__(self, d_model=128, n_heads=4, n_blocks=2, n_slots=28, trunk_dim=256,
+                 n_g=0):
         super().__init__()
         self.n_slots = n_slots
         # Learned per-slot identity: encodes both which element the slot holds
@@ -101,6 +142,10 @@ class SetAtomHead(nn.Module):
         self.cell_proj = nn.Linear(6, d_model)
         # FiLM: trunk representation -> per-token scale and shift.
         self.film = nn.Linear(trunk_dim, 2 * d_model)
+        # Plane-wave conditioning: every atom sees the density amplitudes the
+        # circuit emitted before choosing where to sit, so placement is decoded
+        # from a reciprocal-space description rather than invented in real space.
+        self.rho_proj = nn.Linear(2 * n_g, d_model) if n_g else None
 
         self.blocks = nn.ModuleList([
             nn.ModuleDict({
@@ -113,12 +158,14 @@ class SetAtomHead(nn.Module):
         ])
         self.out = nn.Linear(d_model, 3)
 
-    def forward(self, shared, cell, label):
+    def forward(self, shared, cell, label, rho=None):
         b = shared.shape[0]
         x = self.slot_embed.unsqueeze(0).expand(b, -1, -1)          # (B, 28, d)
         x = x + self.cell_proj(cell).unsqueeze(1)                   # every atom sees the box
         scale, shift = self.film(shared).chunk(2, dim=-1)
         x = x * (1 + scale).unsqueeze(1) + shift.unsqueeze(1)       # quantum conditioning
+        if self.rho_proj is not None and rho is not None:
+            x = x + self.rho_proj(rho.flatten(1)).unsqueeze(1)      # plane-wave conditioning
 
         # Empty slots must not influence the occupied ones.
         pad = (label < 0.5)                                          # (B, 28) True = ignore
@@ -136,10 +183,10 @@ class SetAtomHead(nn.Module):
 
 
 class PQWGAN_CC_Crystal():
-    def __init__(self, input_dim_g, output_dim, input_dim_d, hidden_features, hidden_layers, spectrum_layer, use_noise, outermost_linear=True, set_head=True):
+    def __init__(self, input_dim_g, output_dim, input_dim_d, hidden_features, hidden_layers, spectrum_layer, use_noise, outermost_linear=True, set_head=True, sf_head=False, split_head=True):
         self.output_dim = output_dim
         self.critic = self.ClassicalCritic(input_dim_d)
-        self.generator = self.Hybridren(input_dim_g, hidden_features, hidden_layers, output_dim, spectrum_layer, use_noise, outermost_linear=True, set_head=set_head)
+        self.generator = self.Hybridren(input_dim_g, hidden_features, hidden_layers, output_dim, spectrum_layer, use_noise, outermost_linear=True, set_head=set_head, sf_head=sf_head, split_head=split_head)
 
     class ClassicalCritic(nn.Module):
         def __init__(self, input_dim):
@@ -175,15 +222,37 @@ class PQWGAN_CC_Crystal():
         Keeping the heads separate ensures WGAN gradients can independently
         steer cell geometry vs atom positions, preventing cell-param collapse.
         """
-        def __init__(self, in_features, hidden_features, hidden_layers, out_features, spectrum_layer, use_noise, outermost_linear=True, label_dim=28, set_head=True):
+        def __init__(self, in_features, hidden_features, hidden_layers, out_features, spectrum_layer, use_noise, outermost_linear=True, label_dim=28, set_head=True, sf_head=False, split_head=True):
             super().__init__()
             self.label_dim = label_dim
             self.set_head = set_head
+            self.split_head = split_head
+            # Structure-factor readout requires one qubit per reciprocal lattice
+            # vector, so the Miller set size is the qubit count. Not a free
+            # parameter -- see train_crystal.N_G, which must agree.
+            self.sf_head = sf_head
+            self.n_g = hidden_features if sf_head else 0
 
             # ── Shared quantum trunk ──────────────────────────────────────────
-            trunk = [HybridLayer(in_features, hidden_features, spectrum_layer, use_noise, idx=1)]
-            for i in range(hidden_layers):
-                trunk.append(HybridLayer(hidden_features, hidden_features, spectrum_layer, use_noise, idx=i + 2))
+            # The LAST quantum layer carries the structure-factor readout: it is
+            # the one whose output the heads actually consume, so its amplitudes
+            # are the ones that must describe the emitted crystal. Readout is
+            # fixed at construction -- the QNode's output shape is baked into
+            # the TorchLayer, so flipping it afterwards is not safe.
+            n_trunk = 1 + hidden_layers
+            trunk = []
+            for i in range(n_trunk):
+                last = (i == n_trunk - 1)
+                trunk.append(HybridLayer(
+                    in_features if i == 0 else hidden_features, hidden_features,
+                    spectrum_layer, use_noise, idx=i + 1,
+                    readout='zx' if (last and sf_head) else 'z'))
+            # Index, not a second reference. Assigning the module to an
+            # attribute registers it twice, which duplicates every one of its
+            # tensors under `sf_layer.*` in state_dict() and makes strict
+            # loading of existing v10 checkpoints fail -- which is what every
+            # eval_*.py does.
+            self._sf_idx = n_trunk - 1
             # Project quantum output to shared representation
             trunk += [
                 nn.Linear(hidden_features, 128),
@@ -199,7 +268,7 @@ class PQWGAN_CC_Crystal():
             # band unaided and lands ~30% low, giving 3.7A cells that cannot
             # hold 28 atoms. Squash into the real support instead and start at
             # the dataset mean.
-            self.cell_head = nn.Sequential(
+            self.cell_head = None if not split_head else nn.Sequential(
                 nn.Linear(256, 64),
                 nn.LeakyReLU(0.2),
                 nn.Linear(64, 6),
@@ -208,15 +277,27 @@ class PQWGAN_CC_Crystal():
             self.register_buffer('cell_lo', torch.tensor([0.05] * 3 + [0.20] * 3))
             self.register_buffer('cell_hi', torch.tensor([0.45] * 3 + [0.80] * 3))
             # logit((mean - lo) / (hi - lo)) for lengths .202 and angles .478
-            with torch.no_grad():
-                self.cell_head[-2].weight.mul_(0.1)
-                self.cell_head[-2].bias.copy_(
-                    torch.tensor([-0.4895] * 3 + [-0.1481] * 3))
+            if split_head:
+                with torch.no_grad():
+                    self.cell_head[-2].weight.mul_(0.1)
+                    self.cell_head[-2].bias.copy_(
+                        torch.tensor([-0.4895] * 3 + [-0.1481] * 3))
 
             # ── Atom position head (84 outputs: 28 atoms × 3 coords) ─────────
             # Fractional coordinates in [0,1]
-            if set_head:
-                self.atom_head = SetAtomHead(trunk_dim=256)
+            # ── Joint head: the "quantum, no split head" ablation ────────────
+            # Reviewers cannot isolate the split head's benefit without a
+            # quantum model that lacks it. One head emits all 90 outputs; the
+            # cell/atom output ranges are mapped identically to the split
+            # version, so the ONLY difference is whether the heads are separate.
+            if not split_head:
+                self.joint_head = nn.Sequential(
+                    nn.Linear(256, 512), nn.LeakyReLU(0.2),
+                    nn.Linear(512, 256), nn.LeakyReLU(0.2),
+                    nn.Linear(256, 90), nn.Sigmoid(),
+                )
+            elif set_head:
+                self.atom_head = SetAtomHead(trunk_dim=256, n_g=self.n_g)
             else:
                 # Flat baseline, kept for the ablation: 84 independent outputs,
                 # no atom aware of any other.
@@ -229,9 +310,28 @@ class PQWGAN_CC_Crystal():
                     nn.Sigmoid(),
                 )
 
+        @property
+        def sf_layer(self):
+            """The trunk layer carrying the structure-factor readout."""
+            return self.trunk[self._sf_idx]
+
         def forward(self, coords):
             label  = coords[:, -self.label_dim:]      # input is cat([z, label])
             shared = self.trunk(coords)               # (batch, 256)
+            # rho(G): (B, n_g, 2) complex density amplitudes read off the trunk's
+            # last circuit. Stashed on the module rather than returned, so the
+            # 90-dim output signature every eval_*.py depends on is unchanged.
+            # train_crystal reads generator.last_rho for the consistency loss.
+            self.last_rho = self.sf_layer.rho if self.sf_head else None
+
+            if not self.split_head:
+                # One head, both quantities. Same output ranges as the split
+                # version, so the ablation isolates the head structure alone.
+                raw90 = self.joint_head(shared)
+                cell  = self.cell_lo + (self.cell_hi - self.cell_lo) * raw90[:, :6]
+                atoms = BOX_OFFSET + BOX_SCALE * raw90[:, 6:]
+                atoms = atoms * label.repeat_interleave(3, dim=1)
+                return torch.cat([cell, atoms], dim=1)
 
             cell   = self.cell_lo + (self.cell_hi - self.cell_lo) * self.cell_head(shared)
 
@@ -240,7 +340,7 @@ class PQWGAN_CC_Crystal():
             # exactly 0.0, which a sigmoid can never emit. Map onto the real
             # support, then mask empty slots to exact zero -- that makes the
             # conditioning structural instead of something the critic has to teach.
-            raw    = (self.atom_head(shared, cell, label) if self.set_head
+            raw    = (self.atom_head(shared, cell, label, self.last_rho) if self.set_head
                       else self.atom_head(shared))                     # (batch, 84)
             atoms  = BOX_OFFSET + BOX_SCALE * raw
             atoms  = atoms * label.repeat_interleave(3, dim=1)

@@ -26,7 +26,12 @@ from crystal_mic import validity
 
 N_PROBE = 256
 Z_DEAD_THRESHOLD = 1e-2
-VPA_OK = (9.0, 18.0)     # real Mg-Mn-O is 11.77 +/- 1.84 A^3/atom
+# Real Mg-Mn-O is 11.77 +/- 1.84 A^3/atom (median 11.25). The old 9-18 band was
+# wide enough that a checkpoint at 15.5 qualified as "best" -- and such a
+# checkpoint scored 94.5% validity worth +6.5 eV/atom of CHGNet energy, because
+# validity is a monotonic function of cell inflation. A gate that admits the
+# artefact is not a gate. See research-vault/'The Validity Bar Is Too Low.md'.
+VPA_OK = (9.5, 13.5)
 
 
 def volume_per_atom(coords, labels):

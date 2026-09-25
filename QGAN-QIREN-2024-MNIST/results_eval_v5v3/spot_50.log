@@ -1,6 +1,0 @@
-Device: cuda  |  N_GEN=200  QUICK=True
-Traceback (most recent call last):
-  File "C:\Users\Adminb\OneDrive\Documents\Projects\qgan\QINR-QGAN\QGAN-QIREN-2024-MNIST\eval_v5.py", line 39, in <module>
-    dataset_path = DATASET if os.path.exists(DATASET) else os.path.join(Q_DIR, 'datasets/mgmno_100_aug.pickle')
-                                             ^^^^^^^
-NameError: name 'DATASET' is not defined. Did you mean: 'Q_DATASET'?

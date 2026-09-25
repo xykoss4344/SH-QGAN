@@ -26,20 +26,62 @@ VALID_THRESHOLD = 1.0  # Angstrom
 # 1.0A validity bar says nothing about chemistry -- an Mg-O pair at 1.1A passes it
 # and is still nonsense. Training against these targets chemical plausibility, and
 # clearing them clears 1.0A for free.
-_MIN_SEP = {
+# 'literature': 0.8x typical bond length, used by v9 and v10.
+# 'data': the 0.5th percentile of the measured real distribution, floored to
+# 0.05 A. Use this one.
+#
+# The literature floors are violated by 16.3% of the real training rows -- they
+# were never checked against the dataset, and four of the six sit above its 5th
+# percentile. That puts min_dist_penalty and the WGAN critic in direct conflict
+# on a sixth of the data: the critic is trained to call those structures real
+# while the penalty calls producing them a violation. The data floors bring that
+# to 1.5%. Every one of them is still above the 1.0 A MIC validity bar, so the
+# headline validity metric cannot move as a result of this change.
+#
+# Measured by research-vault/'The Contact Floors Fight The Data.md'.
+_MIN_SEP_LITERATURE = {
     ('Mg', 'Mg'): 2.4, ('Mg', 'Mn'): 2.3, ('Mg', 'O'): 1.7,
     ('Mn', 'Mn'): 2.2, ('Mn', 'O'): 1.6, ('O', 'O'): 2.0,
 }
+_MIN_SEP_DATA = {
+    ('Mg', 'Mg'): 1.85, ('Mg', 'Mn'): 1.80, ('Mg', 'O'): 1.70,
+    ('Mn', 'Mn'): 1.55, ('Mn', 'O'): 1.50, ('O', 'O'): 1.40,
+}
+# 'bond': 0.85x the measured real nearest-neighbour distance per species pair.
+# The other two sets sit far below typical bonding, and a one-sided hinge is a
+# target rather than a constraint -- the model clears the floor and stops, which
+# puts its contacts at ~1.1 A against a real 1.92 A and costs +7 eV/atom of
+# CHGNet energy. See research-vault/'The Validity Bar Is Too Low.md'.
+# Real medians: Mg-Mg 3.04, Mg-Mn 2.97, Mg-O 2.01, Mn-Mn 3.03, Mn-O 1.94, O-O 2.65.
+_MIN_SEP_BOND = {
+    ('Mg', 'Mg'): 2.60, ('Mg', 'Mn'): 2.50, ('Mg', 'O'): 1.70,
+    ('Mn', 'Mn'): 2.55, ('Mn', 'O'): 1.65, ('O', 'O'): 2.25,
+}
+FLOOR_SETS = {'literature': _MIN_SEP_LITERATURE, 'data': _MIN_SEP_DATA,
+              'bond': _MIN_SEP_BOND}
+
+# Default stays 'literature' so existing runs reproduce unchanged; train_crystal
+# selects with --floors, which keeps the ablation attributable.
+_MIN_SEP = _MIN_SEP_LITERATURE
 
 
-def min_separation_matrix(species_map=SPECIES_MAP):
+def set_floors(name):
+    """Select the contact-floor set by name. Affects min_separation_matrix()."""
+    global _MIN_SEP
+    if name not in FLOOR_SETS:
+        raise ValueError(f'unknown floor set {name!r}, expected one of {list(FLOOR_SETS)}')
+    _MIN_SEP = FLOOR_SETS[name]
+
+
+def min_separation_matrix(species_map=SPECIES_MAP, floors=None):
     """(28, 28) matrix of per-pair minimum allowed separation in Angstrom."""
+    sep = FLOOR_SETS[floors] if floors else _MIN_SEP
     n = len(species_map)
     m = np.zeros((n, n), dtype=np.float32)
     for i in range(n):
         for j in range(n):
             a, b = species_map[i], species_map[j]
-            m[i, j] = _MIN_SEP.get((a, b)) or _MIN_SEP[(b, a)]
+            m[i, j] = sep.get((a, b)) or sep[(b, a)]
     return m
 
 
