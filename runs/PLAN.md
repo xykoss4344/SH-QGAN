@@ -65,3 +65,20 @@ term grows -0.03 -> -0.08 after epoch 100 while the NN-distance loss doubles
 (0.21 -> 0.47) and validity drops 79% -> 38%. -ratio is unbounded; the original
 MSGAN 1/(ratio+eps) fades once z is alive. Compare against w9_ema_s0/s1 on the
 LAST checkpoint.
+
+# Waves 12-13 — 2026-09-26, clean data
+
+w12: species-aware contact hinge back on (`--floors data`, re-measured on clean
+data), lambda_dist 0.02 / 0.1. Epoch 60: 98-100% valid at 1.0 A but only 3-7%
+LeMat-valid, vpa 14 (inflating). Violations: ~3.5 pairs/structure, median 0.29 A
+short -- the squared hinge fades near the floor.
+
+w13 (all: inv MS 0.002, EMA 0.999 + warm-up, floors data, vpa_dist 1.0, seed 0):
+
+| folder | hinge | lambda_dist | isolates |
+|---|---|---|---|
+| w13_lin01_vd1_s0 | lin | 0.1 | hinge shape (vs sq01) |
+| w13_lin03_vd1_s0 | lin | 0.3 | hinge weight |
+| w13_sq01_vd1_s0 | sq | 0.1 | vpa_dist 1.0 (vs w12_dist10_msinv) |
+
+Question: LeMat-valid (probe `lemat=`) up, vpa back to ~11.3, std_z > 0.01.
