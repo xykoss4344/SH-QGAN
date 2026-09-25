@@ -333,6 +333,37 @@ def sf_consistency_loss(rho, fake, labels, g=None):
     return ((rho - target) ** 2).mean()
 
 
+SKIPS = {'total': 0, 'streak': 0}
+MAX_SKIP_STREAK = 20
+
+
+def step_if_finite(module, optimizer, name, epoch, i, clip=10.0):
+    """Clip and step, unless the gradient is non-finite; then drop the step.
+
+    Checking only the loss is not enough. w8_ms20_s4 died with d_loss=nan at
+    epoch 7 batch 0 after a finite loss on the previous batch: the GP's double
+    backward produced a NaN *gradient*, Adam wrote it into the critic, and the
+    next forward was NaN. Same "batch 0" signature as the epoch-111 deaths.
+    Dropping a rare bad step is what AMP's GradScaler does; a run of them means
+    something is really broken, so that still aborts.
+    """
+    params = [p for p in module.parameters() if p.grad is not None]
+    norm = torch.nn.utils.clip_grad_norm_(params, clip if clip else float('inf'))
+    if torch.isfinite(norm):
+        optimizer.step()
+        SKIPS['streak'] = 0
+        return True
+    optimizer.zero_grad(set_to_none=True)
+    SKIPS['total'] += 1
+    SKIPS['streak'] += 1
+    print(f"  [skip] non-finite {name} gradient at epoch {epoch} batch {i} "
+          f"(skipped {SKIPS['total']} total)", flush=True)
+    if SKIPS['streak'] > MAX_SKIP_STREAK:
+        raise RuntimeError(f"{SKIPS['streak']} consecutive non-finite gradients; "
+                           "aborting rather than training on nothing.")
+    return False
+
+
 def critic_input(x, labels):
     """Everything the critic sees: structure, label, geometry, diffraction."""
     parts = [x, labels]
@@ -414,6 +445,17 @@ def train(args):
     critic    = gan.critic.to(device)
     q_head    = QHead(data_dim=data_dim).to(device)
 
+    # EMA of the generator weights (as in StyleGAN / diffusion models). The
+    # probe, best-checkpoint selection and saved 'generator' all use the EMA
+    # copy, so a reported number is not one noisy step of an oscillating GAN.
+    # Training itself is unchanged: the critic still plays the live generator.
+    ema = None
+    if args.ema_decay > 0:
+        from torch.optim.swa_utils import AveragedModel, get_ema_multi_avg_fn
+        ema = AveragedModel(generator, multi_avg_fn=get_ema_multi_avg_fn(args.ema_decay),
+                            use_buffers=True)
+    eval_gen = ema.module if ema is not None else generator
+
     # ── DFT-surrogate force distillation (optional, needs chgnet) ─────────────
     distiller = None
     if args.lambda_force > 0:
@@ -459,7 +501,9 @@ def train(args):
     if args.resume_checkpoint and os.path.exists(args.resume_checkpoint):
         print(f"Resuming from {args.resume_checkpoint}...")
         ckpt = torch.load(args.resume_checkpoint, map_location=device)
-        generator.load_state_dict(ckpt['generator'])
+        generator.load_state_dict(ckpt.get('generator_live', ckpt['generator']))
+        if ema is not None:
+            ema.module.load_state_dict(ckpt['generator'])
         critic.load_state_dict(ckpt['critic'])
         q_head.load_state_dict(ckpt['q_head'])
         start_epoch = ckpt['epoch'] + 1
@@ -504,15 +548,14 @@ def train(args):
                     f"d_loss is {d_loss.item()} at epoch {epoch} batch {i} "
                     f"(gp={gp.item():.4g}). Aborting rather than training on NaN.")
             d_loss.backward()
-            torch.nn.utils.clip_grad_norm_(critic.parameters(), 10.0)
-            optimizer_C.step()
+            step_if_finite(critic, optimizer_C, 'critic', epoch, i)
 
             # Q-Head trains on its own full-weight objective. Folding it into
             # d_loss at 0.001 meant it barely learned, so the composition signal
             # it fed back to G was noise.
             l_q_real = q_head.q_real_loss(real_imgs, labels)
             l_q_real.backward()
-            optimizer_Q.step()
+            step_if_finite(q_head, optimizer_Q, 'q_head', epoch, i, clip=None)
 
             ep_d  += d_loss.item()
             ep_w  += wasserstein.item()
@@ -581,8 +624,8 @@ def train(args):
                         f"mad={l_mad.item():.4g} sf={l_sf.item():.4g}. "
                         f"Training on NaN silently wastes the entire run.")
                 g_loss.backward()
-                torch.nn.utils.clip_grad_norm_(generator.parameters(), 10.0)
-                optimizer_G.step()
+                if step_if_finite(generator, optimizer_G, 'generator', epoch, i) and ema is not None:
+                    ema.update_parameters(generator)
 
                 ep_qf   += l_q_fake.item()
                 ep_dist += l_dist.item()
@@ -604,16 +647,22 @@ def train(args):
         # ── Checkpoint ────────────────────────────────────────────────────────
         if epoch % args.save_interval == 0:
             save_path = os.path.join(args.out_folder, f"checkpoint_{epoch}.pt")
-            torch.save({
-                'generator': generator.state_dict(),
+            # 'generator' is what eval loads: the EMA weights when EMA is on.
+            # The live weights are kept separately so training can resume.
+            ck = {
+                'generator': eval_gen.state_dict(),
                 'critic':    critic.state_dict(),
                 'q_head':    q_head.state_dict(),
                 'epoch':     epoch,
-            }, save_path)
+                'args':      vars(args),
+            }
+            if ema is not None:
+                ck['generator_live'] = generator.state_dict()
+            torch.save(ck, save_path)
             print(f"Saved checkpoint to {save_path}")
             # Collapse probe: dead z shows up here at epoch 10 instead of after
             # 500 epochs and a CHGNet run.
-            m = probe_generator(generator, train_data_labels, z_dim, device)
+            m = probe_generator(eval_gen, train_data_labels, z_dim, device)
 
             # Keep the best checkpoint, not the last. v10's best point was epoch
             # 20 and the run degraded to less than half that by epoch 40, so
@@ -628,10 +677,7 @@ def train(args):
             if ok and m['valid'] > best['valid']:
                 best = {'valid': m['valid'], 'epoch': epoch,
                         'vpa': m['vpa'], 'std_z': m['std_z']}
-                torch.save({'generator': generator.state_dict(),
-                            'critic':    critic.state_dict(),
-                            'q_head':    q_head.state_dict(),
-                            'epoch':     epoch, 'probe': m},
+                torch.save(dict(ck, probe=m),
                            os.path.join(args.out_folder, "checkpoint_best.pt"))
                 print(f"  [best] new best: {m['valid'] * 100:.1f}% valid at "
                       f"{m['vpa']:.1f} A^3/atom, epoch {epoch}")
@@ -829,6 +875,10 @@ if __name__ == "__main__":
                              "circuit does not parallelise, so the throughput "
                              "win comes from running many single-threaded seeds "
                              "at once, not from one wide run.")
+    parser.add_argument("--ema_decay",        type=float, default=0.0,
+                        help="EMA decay for the evaluated generator weights, "
+                             "e.g. 0.999 (~1000 G steps, ~30 epochs). 0 = off, "
+                             "which reproduces runs before wave 9.")
     parser.add_argument("--plateau_window",   type=int,   default=30,
                         help="Epochs to look back for plateau detection. 0 = disabled.")
     parser.add_argument("--plateau_tol",      type=float, default=0.02,
@@ -836,4 +886,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     os.makedirs(args.out_folder, exist_ok=True)
+    # Waves 7-8 cannot be reproduced: nothing recorded their flags.
+    import json
+    with open(os.path.join(args.out_folder, "args.json"), "w") as f:
+        json.dump(vars(args), f, indent=2)
     train(args)
