@@ -22,7 +22,7 @@ Baseline (pre-fix checkpoint_490, 256 samples):
 import numpy as np
 import torch
 
-from crystal_mic import validity
+from crystal_mic import lemat_valid, validity
 
 N_PROBE = 256
 Z_DEAD_THRESHOLD = 1e-2
@@ -74,6 +74,8 @@ def probe_generator(generator, labels_all, z_dim, device, n=N_PROBE):
         'valid': frac_valid,
         'mean_dist': float(dists.mean()),
         'vpa': volume_per_atom(out_l, varied).mean(),
+        # The benchmark's species-aware distance rule (LeMat-GenBench).
+        'lemat_valid': float(np.mean([lemat_valid(c, l) for c, l in zip(out_l, varied)])),
     }
     flag = '  <-- COLLAPSED (z is dead)' if m['std_z'] < Z_DEAD_THRESHOLD else ''
     # Validity is meaningless without vpa beside it: inflating the lattice
@@ -82,7 +84,7 @@ def probe_generator(generator, labels_all, z_dim, device, n=N_PROBE):
         flag += f"  <-- CELL INFLATED (vpa {m['vpa']:.1f} vs real ~11.8)"
     print(f"  [probe] std_z={m['std_z']:.5f} std_label={m['std_label']:.5f} "
           f"cell={np.round(m['cell_a'], 2)}A vpa={m['vpa']:.1f} "
-          f"valid={m['valid'] * 100:.1f}% meanD={m['mean_dist']:.2f}A{flag}", flush=True)
+          f"valid={m['valid'] * 100:.1f}% lemat={m['lemat_valid'] * 100:.1f}% meanD={m['mean_dist']:.2f}A{flag}", flush=True)
     return m
 
 

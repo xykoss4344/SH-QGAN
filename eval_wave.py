@@ -46,7 +46,7 @@ import torch
 
 warnings.filterwarnings('ignore')
 
-from crystal_mic import SPECIES_MAP, decode, min_dist
+from crystal_mic import SPECIES_MAP, decode, lemat_valid, min_dist
 from crystal_physics import lattice_matrix
 
 VPA_OK = (9.5, 13.5)   # tightened: 9-18 admitted the cell-inflation artefact
@@ -275,6 +275,7 @@ def evaluate(run, tag, ck, real_coords, real_labels, real_structs, real_vpa, n, 
 
     return dict(run=os.path.basename(run), ckpt=tag, epoch=epoch, sf=sf,
                 v05=float((dists >= 0.5).mean()), v10=float((dists >= 1.0).mean()),
+                vlm=float(np.mean([lemat_valid(c, l) for c, l in zip(coords, labels)])),
                 vpa=float(np.median(vpa)), wvpa=wasserstein(vpa, real_vpa),
                 de=de, de_ok=de_ok, uniq=uniq, novel=novel,
                 relaxed=(paired_relaxed(coords, labels, idx, real_coords, real_labels, n_r,
@@ -315,13 +316,14 @@ def main():
     print(f'real reference: {len(real_structs)} distinct structures, '
           f'median vpa {np.median(real_vpa):.2f} A^3/atom\n')
 
-    hdr = (f"{'run':<18}{'ck':>5}{'ep':>5}{'v@0.5':>7}{'v@1.0':>7}{'vpa':>7}"
+    hdr = (f"{'run':<18}{'ck':>5}{'ep':>5}{'v@0.5':>7}{'v@1.0':>7}{'LeMat':>7}{'vpa':>7}"
            f"{'W(vpa)':>8}{'dE':>7}{'dE<.1':>7}{'uniq':>6}{'novel':>7}{'std_z':>8}  note")
     print(hdr)
     print('-' * len(hdr))
 
     def row(name, tag, ep, m, note=''):
         print(f"{name:<18}{tag:>5}{ep:>5}{m['v05']*100:>7.1f}{m['v10']*100:>7.1f}"
+              f"{m.get('vlm', float('nan'))*100:>7.1f}"
               f"{m['vpa']:>7.1f}{m['wvpa']:>8.2f}{m['de']:>7.2f}{m['de_ok']*100:>7.0f}"
               f"{m['uniq']*100:>6.0f}{m['novel']*100:>7.0f}{m['stdz']:>8.4f}  {note}",
               flush=True)
@@ -350,6 +352,7 @@ def main():
                                    a.n_energy) if a.n_energy else (np.nan, np.nan))
         row('substitution', '--', '--',
             dict(v05=(d >= 0.5).mean(), v10=(d >= 1.0).mean(), vpa=np.median(v),
+                 vlm=np.mean([lemat_valid(c, l) for c, l in zip(sub, sub_lab)]),
                  wvpa=wasserstein(v, real_vpa), de=de, de_ok=de_ok, uniq=u,
                  novel=nv, stdz=float('nan'),
                  relaxed=(paired_relaxed(sub, sub_lab, sub_idx, real_coords,

@@ -43,9 +43,15 @@ _MIN_SEP_LITERATURE = {
     ('Mg', 'Mg'): 2.4, ('Mg', 'Mn'): 2.3, ('Mg', 'O'): 1.7,
     ('Mn', 'Mn'): 2.2, ('Mn', 'O'): 1.6, ('O', 'O'): 2.0,
 }
+# Re-measured 2026-09-26 on the clean data (after the supercell fix): 0.5th
+# percentile over the 882 distinct structures of each structure's minimum
+# contact per species pair. The old values (Mg-Mg 1.85, Mn-Mn 1.55, ...) were
+# pulled down by supercells with Mn and O on swapped sites. Every value sits
+# above LeMat-GenBench's validity threshold 0.5*(0.7 + r_i + r_j), so clearing
+# these floors clears that benchmark's distance check.
 _MIN_SEP_DATA = {
-    ('Mg', 'Mg'): 1.85, ('Mg', 'Mn'): 1.80, ('Mg', 'O'): 1.70,
-    ('Mn', 'Mn'): 1.55, ('Mn', 'O'): 1.50, ('O', 'O'): 1.40,
+    ('Mg', 'Mg'): 2.53, ('Mg', 'Mn'): 2.37, ('Mg', 'O'): 1.79,
+    ('Mn', 'Mn'): 2.52, ('Mn', 'O'): 1.69, ('O', 'O'): 1.42,
 }
 # 'bond': 0.85x the measured real nearest-neighbour distance per species pair.
 # The other two sets sit far below typical bonding, and a one-sided hinge is a
@@ -115,6 +121,29 @@ def min_dist(coords_90, label_28, species_map=SPECIES_MAP):
         return 0.0
     np.fill_diagonal(d, np.inf)
     return float(d.min())
+
+
+# LeMat-GenBench's distance rule: every pair at >= 0.5 * (0.7 + r_i + r_j), with
+# pymatgen atomic radii. Species-aware where VALID_THRESHOLD is flat: it fails
+# cation-cation contacts under ~1.8 A that the 1.0 A bar passes -- the reason a
+# run at "80% valid" scored 13% on the benchmark.
+_LEMAT_RADII = {'Mg': 1.5, 'Mn': 1.4, 'O': 0.6}
+
+
+def lemat_valid(coords_90, label_28, species_map=SPECIES_MAP):
+    """True if every pair clears LeMat-GenBench's species-aware distance floor."""
+    species, frac, cell = decode(coords_90, label_28, species_map)
+    if len(species) < 2:
+        return False
+    try:
+        d = Atoms(symbols=species, scaled_positions=frac, cell=cell,
+                  pbc=True).get_all_distances(mic=True)
+    except Exception:
+        return False
+    r = np.array([_LEMAT_RADII[s] for s in species])
+    floor = 0.5 * (0.7 + r[:, None] + r[None, :])
+    np.fill_diagonal(d, np.inf)
+    return bool((d >= floor).all())
 
 
 def validity(coords, labels, threshold=VALID_THRESHOLD, species_map=SPECIES_MAP):
