@@ -27,3 +27,6 @@ __pycache__/
 
 # Data caches (regenerate with datasets/*.py)
 **/relaxed_structures.pkl
+
+# Benchmark CIF exports (regenerate with benchmark.py)
+bench_out/
