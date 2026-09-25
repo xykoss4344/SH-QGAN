@@ -461,8 +461,16 @@ def train(args):
     ema = None
     if args.ema_decay > 0:
         from torch.optim.swa_utils import AveragedModel, get_ema_multi_avg_fn
-        ema = AveragedModel(generator, multi_avg_fn=get_ema_multi_avg_fn(args.ema_decay),
-                            use_buffers=True)
+
+        def ema_avg(avg, cur, n):
+            # Warm-up, as in diffusion EMA: decay_t = min(decay, (1+n)/(10+n)).
+            # A fixed 0.999 left the EMA copy ~60% initial weights at epoch 15,
+            # so every probe before epoch ~60 read "collapsed" (waves 11-12).
+            d = min(args.ema_decay, float((1.0 + n) / (10.0 + n)))
+            return d * avg + (1.0 - d) * cur
+        kw = ({'avg_fn': ema_avg} if args.ema_warmup
+              else {'multi_avg_fn': get_ema_multi_avg_fn(args.ema_decay)})
+        ema = AveragedModel(generator, use_buffers=True, **kw)
     eval_gen = ema.module if ema is not None else generator
 
     # ── DFT-surrogate force distillation (optional, needs chgnet) ─────────────
@@ -894,6 +902,9 @@ if __name__ == "__main__":
                         help="EMA decay for the evaluated generator weights, "
                              "e.g. 0.999 (~1000 G steps, ~30 epochs). 0 = off, "
                              "which reproduces runs before wave 9.")
+    parser.add_argument("--ema_warmup",       action="store_true",
+                        help="EMA decay warm-up min(decay, (1+n)/(10+n)). Off "
+                             "reproduces waves 9-12.")
     parser.add_argument("--plateau_window",   type=int,   default=30,
                         help="Epochs to look back for plateau detection. 0 = disabled.")
     parser.add_argument("--plateau_tol",      type=float, default=0.02,
