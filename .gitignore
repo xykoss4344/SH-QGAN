@@ -1,7 +1,9 @@
 # Third-party binaries — 1.1 GB of Quantum Espresso + Intel MKL DLLs were
 # tracked here. Install them with dft/install_qe.py instead of versioning them.
-QGAN-QIREN-2024-MNIST/dft/qe_binaries/
 **/qe_binaries/
+
+# Old unrelated clone, kept locally only
+_archive/
 
 # Training artefacts: checkpoints are 2.7 MB each and there are thousands.
 # Metrics belong in research-vault/Experiment Log.md, not in git history.

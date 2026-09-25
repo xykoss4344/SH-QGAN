@@ -1,7 +1,0 @@
-﻿C:\Users\Adminb\AppData\Local\Microsoft\WindowsApps\python.exe
-C:\Users\Adminb\AppData\Local\Microsoft\WindowsApps\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe\python.exe
-C:\Users\Adminb\AppData\Local\Microsoft\WindowsApps\PythonSoftwareFoundation.PythonManager_3847v3x7pw1km\python.exe
-C:\Users\Adminb\AppData\Local\Python\bin\python.exe
-C:\Users\Adminb\AppData\Local\Python\pythoncore-3.12-64\python.exe
-C:\Users\Adminb\AppData\Local\Python\pythoncore-3.12-64\Lib\venv\scripts\nt\python.exe
-C:\Users\Adminb\AppData\Local\Python\pythoncore-3.14-64\python.exe
