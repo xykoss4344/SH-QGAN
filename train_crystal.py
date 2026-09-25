@@ -210,6 +210,9 @@ def _pair_distances(fake, labels):
     return torch.sqrt((cart ** 2).sum(dim=-1) + 1e-6)     # (B, 28, 28)
 
 
+DIST_HINGE = 'sq'      # set by --dist_hinge
+
+
 def min_dist_penalty(fake, labels, threshold=1.0, species_aware=True):
     """Penalty on interatomic distances that are too close.
 
@@ -236,7 +239,12 @@ def min_dist_penalty(fake, labels, threshold=1.0, species_aware=True):
     else:
         floor = torch.full_like(dist, threshold)
 
-    viol = torch.relu(floor - dist) ** 2 * pair
+    # 'sq' (default, waves <= 12) has gradient 2*(floor - d), which vanishes as a
+    # pair nears its floor: wave 12 at epoch 60 sat ~3.5 pairs per structure a
+    # median 0.29 A short of the LeMat threshold. 'lin' keeps a constant push all
+    # the way to the floor.
+    short = torch.relu(floor - dist)
+    viol = (short if DIST_HINGE == 'lin' else short ** 2) * pair
     # Sum within a structure, mean across the batch -- see docstring point 1.
     return viol.sum(dim=(1, 2)).mean()
 
@@ -394,7 +402,8 @@ def train(args):
     # thread per process and many processes in parallel is ~14x the throughput
     # of a single wide run. See bench_device.py.
     torch.set_num_threads(args.num_threads)
-    global USE_SF_FEATURES, VPA_LO, VPA_HI
+    global USE_SF_FEATURES, VPA_LO, VPA_HI, DIST_HINGE
+    DIST_HINGE = args.dist_hinge
     VPA_LO, VPA_HI = args.vpa_lo, args.vpa_hi
     print(f"Volume prior: {VPA_LO}-{VPA_HI} A^3/atom (real median 11.25)")
     USE_SF_FEATURES = args.sf_features
@@ -790,6 +799,10 @@ if __name__ == "__main__":
                              "1.0: the penalty now sums violations per structure instead "
                              "of averaging over ~378 pairs, so raw values start ~190 "
                              "rather than ~0.003. 0.02 puts it on par with the WGAN term.")
+    parser.add_argument("--dist_hinge",      type=str,   default="sq",
+                        choices=["sq", "lin"],
+                        help="Contact-penalty shape. 'sq' (default) fades as a "
+                             "pair nears its floor; 'lin' keeps a constant push.")
     parser.add_argument("--lambda_vol",      type=float, default=5.0,
                         help="Weight on the volume-per-atom prior. Applied from epoch 0 "
                              "(no warmup): it must be in force before the distance "
