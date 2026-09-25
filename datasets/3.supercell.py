@@ -9,6 +9,16 @@ import make_representation
 from tqdm import tqdm
 import pickle
 
+SPECIES_ORDER = {'Mg': 0, 'Mn': 1, 'O': 2}
+
+
+def sort_species(atoms):
+    """Reorder atoms Mg..., Mn..., O... (stable), the order do_feature assumes."""
+    order = np.argsort([SPECIES_ORDER[s] for s in atoms.get_chemical_symbols()],
+                       kind='stable')
+    return atoms[order]
+
+
 def do_supercell(image, n = None):
     atoms, image = view_atoms_mgmno.view_atoms(image, view = False)
     s  = atoms.get_chemical_symbols()
@@ -16,9 +26,13 @@ def do_supercell(image, n = None):
     n_mn = s.count('Mn')
     n_o = s.count('O')
 
-    atoms_x = atoms.repeat((2,1,1))
-    atoms_y = atoms.repeat((1,2,1))
-    atoms_z = atoms.repeat((1,1,2))
+    # repeat() tiles the whole atom list -- Mg Mn O O O, Mg Mn O O O -- but
+    # do_feature slices by count assuming all Mg, then Mn, then O. Unsorted,
+    # every supercell put Mn/O on each other's sites: 2-4 eV/atom above its own
+    # primitive cell, in 1374 of the 2627 structures. Sort by species first.
+    atoms_x = sort_species(atoms.repeat((2,1,1)))
+    atoms_y = sort_species(atoms.repeat((1,2,1)))
+    atoms_z = sort_species(atoms.repeat((1,1,2)))
     
     image_x = make_representation.do_feature(atoms_x).reshape(1,30,3)
     image_y = make_representation.do_feature(atoms_y).reshape(1,30,3)

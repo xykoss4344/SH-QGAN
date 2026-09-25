@@ -30,3 +30,7 @@ __pycache__/
 
 # Benchmark CIF exports (regenerate with benchmark.py)
 bench_out/
+
+# Rebuilt by datasets/rebuild_dataset.py
+datasets/unique_sc_mgmno.npy
+datasets/unique_sc_mgmno_name_list

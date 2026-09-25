@@ -70,6 +70,10 @@ final = []
 names = []
 #ag_number = 300
 ag_number = int(sys.argv[1])
+# Optional seed: translations and permutations were unseeded, so the dataset
+# could not be rebuilt identically.
+if len(sys.argv) > 2:
+    np.random.seed(int(sys.argv[2]))
 for ii,comp in enumerate(comp_list):
     comp_number = int(len(comp_image_dict[comp]))
     print("compositions is ", comp)
