@@ -136,10 +136,26 @@ def main():
     ap.add_argument('--seed', type=int, default=0)
     ap.add_argument('--cif_dir', default=None)
     ap.add_argument('--dataset', default='datasets/mgmno_100.pickle')
+    ap.add_argument('--cif_only', action='store_true',
+                    help='only write CIFs for the checkpoints (for LeMat-GenBench)')
     a = ap.parse_args()
     np.random.seed(a.seed); torch.manual_seed(a.seed)
 
     raw = pickle.load(open(a.dataset, 'rb'))
+    if a.cif_only:
+        rl = np.array([np.array(l).flatten() for c, l in raw], dtype=np.float32)
+        for ck in a.ckpt:
+            coords, labels, _ = sample(load_generator(ck)[0], rl, a.n)
+            name = f"{os.path.basename(os.path.dirname(ck))}_{os.path.basename(ck)[11:-3]}"
+            out = os.path.join(a.cif_dir, name)
+            os.makedirs(out, exist_ok=True)
+            k = 0
+            for c, l in zip(coords, labels):
+                st = one_structure(c, l)
+                if st is not None:
+                    st.to(filename=os.path.join(out, f'{name}_{k:04d}.cif')); k += 1
+            print(f'{name}: {k}/{a.n} decoded -> {out}')
+        return
     rc = np.array([np.array(c).flatten() for c, l in raw], dtype=np.float32)
     rl = np.array([np.array(l).flatten() for c, l in raw], dtype=np.float32)
     ridx = np.load(os.path.join(os.path.dirname(a.dataset), 'novelty_ref_idx.npy'))

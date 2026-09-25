@@ -31,7 +31,7 @@ def grab(text, key):
 
 
 def main(paths):
-    print(f"{'run':<30}{'n':>5}" + ''.join(f'{c:>8}' for c, _, _ in KEYS))
+    print(f"{'run':<30}{'n':>5}" + ''.join(f'{c:>8}' for c, _, _ in KEYS) + f"{'MSUN/all':>10}")
     for p in paths:
         d = json.load(open(p))
         res = d['results']
@@ -41,7 +41,11 @@ def main(paths):
                 row.append(d['validity_filtering']['validity_rate'])
             else:
                 row.append(grab(str(res.get(fam, '')), key))
-        print(f'{row[0]:<30}{row[1]:>5}' + ''.join(f'{v:>8.3f}' for v in row[2:]))
+        # LeMat rates are over VALID structures only; a model that emits more
+        # invalid structures would look better. MSUN/all counts every sample.
+        msun_all = row[2 + [c for c, _, _ in KEYS].index('MSUN')] * row[2]
+        print(f'{row[0]:<30}{row[1]:>5}' + ''.join(f'{v:>8.3f}' for v in row[2:])
+              + f'{msun_all:>10.3f}')
     print('\nE_hull in eV/atom (ensemble mean of per-MLIP hulls, after 50-step relaxation). '
           'Rates are fractions of VALID structures; novelty is vs LeMat-Bulk (5.3M).')
 
