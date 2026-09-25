@@ -13,7 +13,7 @@ from probe_collapse import probe_generator, VPA_OK, Z_DEAD_THRESHOLD
 import crystal_mic
 from crystal_mic import min_separation_matrix
 from crystal_physics import (lattice_matrix, madelung_energy, madelung_penalty,
-                             miller_set, nn_distribution_loss, structure_factor,
+                             miller_set, nn_class_distribution_loss, nn_distribution_loss, structure_factor,
                              structure_factor_features, vpa_distribution_loss)
 
 
@@ -511,6 +511,7 @@ def train(args):
     lambda_nn   = args.lambda_nn
     lambda_vd   = args.lambda_vpa_dist
     lambda_ms   = args.lambda_mode_seek
+    lambda_nnc  = args.lambda_nn_class
 
     # ── Loss tracking ─────────────────────────────────────────────────────────
     epoch_losses = {
@@ -634,6 +635,8 @@ def train(args):
                         else torch.zeros((), device=device))
                 l_vd = (vpa_distribution_loss(fake_imgs, labels) if lambda_vd > 0
                         else torch.zeros((), device=device))
+                l_nnc = (nn_class_distribution_loss(fake_imgs, labels) if lambda_nnc > 0
+                         else torch.zeros((), device=device))
 
                 # Total G loss: WGAN + composition + geometry + electrostatics
                 #               + reciprocal-space consistency + DFT forces
@@ -641,7 +644,7 @@ def train(args):
                           + lambda_vol * l_vol + lambda_mad * l_mad
                           + lambda_sf * l_sf + args.lambda_force * l_force
                           + lambda_nn * l_nn + lambda_vd * l_vd
-                          + lambda_ms * l_ms)
+                          + lambda_ms * l_ms + lambda_nnc * l_nnc)
 
                 if not torch.isfinite(g_loss):
                     raise RuntimeError(
@@ -666,7 +669,7 @@ def train(args):
                           f"[Dist: {l_dist.item():.4f}] [Vol: {l_vol.item():.4f}] "
                           f"[Mad: {l_mad.item():.4f}] [SF: {l_sf.item():.4f}] "
                           f"[NN: {l_nn.item():.4f}] [VD: {l_vd.item():.4f}] "
-                          f"[MS: {l_ms.item():.4f}] "
+                          f"[MS: {l_ms.item():.4f}] [NNC: {l_nnc.item():.4f}] "
                           f"[F: {l_force.item():.4f}"
                           f"{f'/{distiller.last_n}' if distiller else ''}] "
                           f"[dist_w: {dist_w:.2f}]")
@@ -874,6 +877,12 @@ if __name__ == "__main__":
                              "min_dist_penalty it penalises 1.1 A contacts that "
                              "clear every floor, and does not go quiet once a "
                              "floor is cleared. Use with --lambda_dist 0.")
+    parser.add_argument("--lambda_nn_class",  type=float, default=0.0,
+                        help="Weight on SPECIES-RESOLVED nearest-neighbour "
+                             "distribution matching (cation->cation, cation->O, "
+                             "O->O, O->cation). The pooled NN loss never sees "
+                             "cation-cation or O-O contacts; without this the "
+                             "model had no ionic ordering (+2.5 eV/atom E_hull).")
     parser.add_argument("--lambda_vpa_dist",  type=float, default=0.0,
                         help="Weight on volume-per-atom DISTRIBUTION matching. "
                              "Replaces the [10.0, 15.6] hinge whose ceiling the "

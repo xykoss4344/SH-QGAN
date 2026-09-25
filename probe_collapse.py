@@ -46,6 +46,19 @@ def volume_per_atom(coords, labels):
     return vol / n
 
 
+def _ordering(coords, labels):
+    import torch
+    from crystal_physics import NN_CLASSES, masked_pair_distances, nn_class_values
+    c = torch.as_tensor(np.asarray(coords), dtype=torch.float32)
+    l = torch.as_tensor(np.asarray(labels), dtype=torch.float32)
+    d = masked_pair_distances(c, l)
+    out = {}
+    for k in ('cc', 'oo'):
+        v = nn_class_values(d, l, *NN_CLASSES[k])
+        out[f'nn_{k}'] = float(v.median()) if v.numel() else float('nan')
+    return out
+
+
 def probe_generator(generator, labels_all, z_dim, device, n=N_PROBE):
     """Print diversity + validity for a generator. Returns the metrics dict."""
     was_training = generator.training
@@ -76,6 +89,9 @@ def probe_generator(generator, labels_all, z_dim, device, n=N_PROBE):
         'vpa': volume_per_atom(out_l, varied).mean(),
         # The benchmark's species-aware distance rule (LeMat-GenBench).
         'lemat_valid': float(np.mean([lemat_valid(c, l) for c, l in zip(out_l, varied)])),
+        # Ionic ordering: median cation -> nearest cation (real 3.00 A) and
+        # O -> nearest O (real 2.74 A). Distance checks cannot see this.
+        **_ordering(out_l, varied),
     }
     flag = '  <-- COLLAPSED (z is dead)' if m['std_z'] < Z_DEAD_THRESHOLD else ''
     # Validity is meaningless without vpa beside it: inflating the lattice
@@ -84,7 +100,8 @@ def probe_generator(generator, labels_all, z_dim, device, n=N_PROBE):
         flag += f"  <-- CELL INFLATED (vpa {m['vpa']:.1f} vs real ~11.8)"
     print(f"  [probe] std_z={m['std_z']:.5f} std_label={m['std_label']:.5f} "
           f"cell={np.round(m['cell_a'], 2)}A vpa={m['vpa']:.1f} "
-          f"valid={m['valid'] * 100:.1f}% lemat={m['lemat_valid'] * 100:.1f}% meanD={m['mean_dist']:.2f}A{flag}", flush=True)
+          f"valid={m['valid'] * 100:.1f}% lemat={m['lemat_valid'] * 100:.1f}% "
+          f"ccNN={m['nn_cc']:.2f} ooNN={m['nn_oo']:.2f} meanD={m['mean_dist']:.2f}A{flag}", flush=True)
     return m
 
 

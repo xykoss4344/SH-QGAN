@@ -106,6 +106,8 @@ def main():
     np.save('real_nn_quantiles.npy', torch.quantile(v, q).numpy())
     np.save('real_vpa_quantiles.npy', torch.quantile(vpa, q).numpy())
     print(f'nn median {v.median():.3f} A, vpa median {vpa.median():.2f} A^3/atom')
+    from crystal_physics import save_nn_class_quantiles
+    save_nn_class_quantiles(c, lab, HERE)
 
     run('make_novelty_reference.py')
     print('done: mgmno_100.pickle, mgmno_100_aug.pickle, quantiles, novelty_ref_idx.npy')

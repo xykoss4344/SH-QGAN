@@ -335,12 +335,8 @@ def real_quantiles(name, device=None, dtype=torch.float32):
     return q.to(device=device, dtype=dtype) if device is not None else q.to(dtype)
 
 
-def nn_distances(fake, labels, pad=1e3):
-    """(B, 28) nearest-neighbour distance per atom under the minimum image.
-
-    Empty slots and unoccupied neighbours are pushed to `pad` so they cannot be
-    anyone's nearest neighbour. Mask with `labels` before pooling.
-    """
+def masked_pair_distances(fake, labels, pad=1e3):
+    """(B, 28, 28) MIC distances with non-pairs (empty slot, self) pushed to `pad`."""
     lattice = lattice_matrix(fake)
     frac = fractional(fake)
     df = frac.unsqueeze(2) - frac.unsqueeze(1)
@@ -348,7 +344,31 @@ def nn_distances(fake, labels, pad=1e3):
     d = torch.sqrt((torch.matmul(df, lattice.unsqueeze(1)) ** 2).sum(-1) + 1e-6)
     occ = labels.unsqueeze(2) * labels.unsqueeze(1)
     pair = occ * (1.0 - torch.eye(28, device=fake.device).unsqueeze(0))
-    return (d + (1.0 - pair) * pad).min(dim=2).values
+    return d + (1.0 - pair) * pad
+
+
+def nn_distances(fake, labels, pad=1e3):
+    """(B, 28) nearest-neighbour distance per atom under the minimum image.
+
+    Empty slots and unoccupied neighbours are pushed to `pad` so they cannot be
+    anyone's nearest neighbour. Mask with `labels` before pooling.
+    """
+    return masked_pair_distances(fake, labels, pad).min(dim=2).values
+
+
+# Species-resolved nearest neighbours: (source class, destination class).
+# Slots 0-15 are cations (Mg, Mn), 16-27 are O.
+_CATION = torch.arange(28) < 16
+NN_CLASSES = {'cc': (_CATION, _CATION), 'co': (_CATION, ~_CATION),
+              'oo': (~_CATION, ~_CATION), 'oc': (~_CATION, _CATION)}
+
+
+def nn_class_values(d, labels, src, dst, pad=1e3):
+    """Per-atom distance to the nearest `dst`-class atom, for `src`-class atoms."""
+    dst = dst.to(d.device)
+    nn = (d + (~dst).float().view(1, 1, 28) * pad).min(dim=2).values
+    v = nn[(labels > 0.5) & src.to(d.device).view(1, 28)]
+    return v[v < 50.0]
 
 
 # Extreme quantiles are dominated by outliers -- real volume per atom runs to
@@ -381,6 +401,39 @@ def nn_distribution_loss(fake, labels):
     vals = nn[labels > 0.5]
     vals = vals[vals < 50.0]                               # drop padded slots
     return quantile_loss(vals, real_quantiles('nn', fake.device, fake.dtype))
+
+
+def nn_class_distribution_loss(fake, labels):
+    """Match four species-resolved nearest-neighbour distributions to real.
+
+    The pooled NN loss is species-blind and a cation's nearest neighbour is
+    almost always O, so it never sees cation-cation or O-O contacts. With it
+    and the contact floors, wave 12 passed LeMat's distance check at 83% but
+    had 3.3 cation neighbours per cation within 2.9 A (real 0.65) and 2.5 O
+    per O within 2.4 A (real 0.06): no ionic ordering, +2.5 eV/atom E_hull.
+    The floors became targets; these are two-sided, so there is no floor to
+    sit on -- cation->cation must look like real cation->cation.
+    """
+    d = masked_pair_distances(fake, labels)
+    losses = [quantile_loss(nn_class_values(d, labels, s, t),
+                            real_quantiles(f'nn_{k}', fake.device, fake.dtype))
+              for k, (s, t) in NN_CLASSES.items()]
+    return sum(losses) / len(losses)
+
+
+def save_nn_class_quantiles(coords, labels, out_dir, n_q=65):
+    """Measure and save the real species-resolved NN quantile targets."""
+    import os
+    vals = {k: [] for k in NN_CLASSES}
+    for i in range(0, len(coords), 512):
+        d = masked_pair_distances(coords[i:i + 512], labels[i:i + 512])
+        for k, (s, t) in NN_CLASSES.items():
+            vals[k].append(nn_class_values(d, labels[i:i + 512], s, t))
+    q = torch.linspace(0, 1, n_q)
+    for k, v in vals.items():
+        v = torch.cat(v)
+        np.save(os.path.join(out_dir, f'real_nn_{k}_quantiles.npy'), torch.quantile(v, q).numpy())
+        print(f'nn {k}: median {v.median():.3f} A, p5 {torch.quantile(v, 0.05):.3f}, n={len(v)}')
 
 
 def vpa_distribution_loss(fake, labels):
