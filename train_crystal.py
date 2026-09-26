@@ -484,6 +484,7 @@ def train(args):
         split_head      = not args.no_split_head,
         refine_rounds   = args.refine_rounds,
         trunk           = args.trunk,
+        trunk_residual  = not args.no_trunk_residual,
     )
 
     generator = gan.generator.to(device)
@@ -950,6 +951,10 @@ if __name__ == "__main__":
                              "circuit in each trunk layer with a classical layer of "
                              "matched size (156 vs 144 params) or 11x wider. "
                              "Everything else is identical.")
+    parser.add_argument("--no_trunk_residual", action="store_true",
+                        help="Remove the x + trunk(x) shortcut in each trunk layer, so "
+                             "all information must pass through the circuit (or its "
+                             "classical twin).")
     parser.add_argument("--refine_rounds",   type=int,   default=0,
                         help="Rounds of periodic E(3)-equivariant message passing "
                              "after the set head (models.PeriodicRefiner). 0 = off. "

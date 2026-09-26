@@ -75,7 +75,8 @@ def load_generator(ckpt_path, z_dim=64, hidden=12, layers=1, spectrum=1):
     gan = PQWGAN_CC_Crystal(input_dim_g=z_dim + 28, output_dim=90, input_dim_d=126,
                             hidden_features=hidden, hidden_layers=layers,
                             spectrum_layer=spectrum, use_noise=0.0, sf_head=sf,
-                            split_head=split, refine_rounds=rounds, trunk=trunk)
+                            split_head=split, refine_rounds=rounds, trunk=trunk,
+                            trunk_residual=not ck.get('args', {}).get('no_trunk_residual', False))
     gan.generator.load_state_dict(sd)
     gan.generator.eval()
     return gan.generator, ck.get('epoch', -1), sf
