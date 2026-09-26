@@ -482,6 +482,7 @@ def train(args):
         use_noise       = args.use_noise,
         sf_head         = args.sf_head,
         split_head      = not args.no_split_head,
+        refine_rounds   = args.refine_rounds,
     )
 
     generator = gan.generator.to(device)
@@ -902,6 +903,12 @@ if __name__ == "__main__":
                              "min_dist_penalty it penalises 1.1 A contacts that "
                              "clear every floor, and does not go quiet once a "
                              "floor is cleared. Use with --lambda_dist 0.")
+    parser.add_argument("--refine_rounds",   type=int,   default=0,
+                        help="Rounds of periodic E(3)-equivariant message passing "
+                             "after the set head (models.PeriodicRefiner). 0 = off. "
+                             "The one-shot head places atoms ~uniformly at random "
+                             "relative to each other; this lets atoms see their "
+                             "actual neighbours.")
     parser.add_argument("--critic_species_geom", action="store_true",
                         help="Critic sees the 8 smallest cation-cation, cation-O "
                              "and O-O distances (24) instead of 8 pooled ones, so "

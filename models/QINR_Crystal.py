@@ -158,7 +158,7 @@ class SetAtomHead(nn.Module):
         ])
         self.out = nn.Linear(d_model, 3)
 
-    def forward(self, shared, cell, label, rho=None):
+    def forward(self, shared, cell, label, rho=None, return_tokens=False):
         b = shared.shape[0]
         x = self.slot_embed.unsqueeze(0).expand(b, -1, -1)          # (B, 28, d)
         x = x + self.cell_proj(cell).unsqueeze(1)                   # every atom sees the box
@@ -179,14 +179,88 @@ class SetAtomHead(nn.Module):
             x = x + a
             x = x + blk['ff'](blk['n2'](x))
 
-        return torch.sigmoid(self.out(x)).reshape(b, self.n_slots * 3)
+        pos = torch.sigmoid(self.out(x)).reshape(b, self.n_slots * 3)
+        return (pos, x) if return_tokens else pos
+
+
+def _lattice_from_cell(cell6):
+    """(B, 3, 3) lattice, rows are vectors, from the normalised 6 cell outputs."""
+    from crystal_physics import lattice_matrix
+    fake = torch.zeros(cell6.shape[0], 90, device=cell6.device, dtype=cell6.dtype)
+    fake[:, :6] = cell6
+    return lattice_matrix(fake)
+
+
+class PeriodicRefiner(nn.Module):
+    """E(3)-equivariant refinement over the periodic neighbour graph (EGNN-style).
+
+    The set head emits all 28 positions in one shot and no atom sees where the
+    others actually landed. Measured on waves 12-15: generated same-species
+    atoms sit at a mean fractional separation of 0.49-0.52, i.e. uniformly
+    random (0.48), where real crystals are more ordered (0.55) -- so contacts
+    were fixed by the penalties but cations still had 3.3 cation neighbours
+    within 2.9 A (real 0.65) and E_hull stayed at +2.5 eV/atom. Every modern
+    crystal generator (CDVAE, DiffCSP, MatterGen) builds geometry by message
+    passing on the minimum-image graph; this adds that, after the split head.
+
+    Each round: messages from species, RBF(distance); each atom moves along its
+    neighbour vectors weighted by a learned scalar -- equivariant by
+    construction. The last coordinate layer starts at zero, so an untrained
+    refiner is the identity.
+    """
+
+    def __init__(self, d_tok=128, d=64, rounds=3, n_rbf=16, cutoff=6.0):
+        super().__init__()
+        self.rounds, self.cutoff = rounds, cutoff
+        self.inp = nn.Linear(d_tok, d)
+        self.species = nn.Embedding(3, d)
+        self.register_buffer('species_idx', torch.tensor([0] * 8 + [1] * 8 + [2] * 12))
+        self.register_buffer('mu', torch.linspace(0.5, cutoff, n_rbf))
+        self.gamma = (n_rbf / cutoff) ** 2
+        self.edge = nn.ModuleList([nn.Sequential(nn.Linear(2 * d + n_rbf, d), nn.SiLU(),
+                                                 nn.Linear(d, d), nn.SiLU())
+                                   for _ in range(rounds)])
+        self.node = nn.ModuleList([nn.Sequential(nn.Linear(2 * d, d), nn.SiLU(),
+                                                 nn.Linear(d, d)) for _ in range(rounds)])
+        self.coord = nn.ModuleList()
+        for _ in range(rounds):
+            last = nn.Linear(d, 1)
+            nn.init.zeros_(last.weight); nn.init.zeros_(last.bias)
+            self.coord.append(nn.Sequential(nn.Linear(d, d), nn.SiLU(), last))
+
+    def forward(self, frac, cell6, label, tokens):
+        b, n = frac.shape[:2]
+        h = self.inp(tokens) + self.species(self.species_idx).unsqueeze(0)
+        occ = label > 0.5
+        eye = torch.eye(n, dtype=torch.bool, device=frac.device)
+        pair = (occ.unsqueeze(2) & occ.unsqueeze(1) & ~eye).float()
+        lat = _lattice_from_cell(cell6)                              # (B, 3, 3)
+        lat_inv = torch.linalg.inv(lat)
+        for r in range(self.rounds):
+            df = frac.unsqueeze(2) - frac.unsqueeze(1)
+            df = df - torch.round(df)                                # minimum image
+            vec = torch.matmul(df, lat.unsqueeze(1))                 # (B, n, n, 3), j -> i
+            d = torch.sqrt((vec ** 2).sum(-1) + 1e-6)
+            env = 0.5 * (torch.cos(torch.pi * d.clamp(max=self.cutoff) / self.cutoff) + 1)
+            m = pair * env * (d < self.cutoff).float()
+            rbf = torch.exp(-self.gamma * (d.unsqueeze(-1) - self.mu) ** 2)
+            hi = h.unsqueeze(2).expand(b, n, n, -1)
+            hj = h.unsqueeze(1).expand(b, n, n, -1)
+            e = self.edge[r](torch.cat([hi, hj, rbf], dim=-1)) * m.unsqueeze(-1)
+            norm = m.sum(2, keepdim=True) + 1.0
+            h = h + self.node[r](torch.cat([h, e.sum(2) / norm], dim=-1))
+            w = self.coord[r](e).squeeze(-1) * m                     # >0 pushes i from j
+            dx = (vec * w.unsqueeze(-1)).sum(2) / norm               # (B, n, 3) Angstrom
+            dx = dx.clamp(-0.5, 0.5)                                 # bounded step
+            frac = frac + torch.matmul(dx.unsqueeze(2), lat_inv.unsqueeze(1)).squeeze(2)
+        return frac - torch.floor(frac)                              # wrap into [0, 1)
 
 
 class PQWGAN_CC_Crystal():
-    def __init__(self, input_dim_g, output_dim, input_dim_d, hidden_features, hidden_layers, spectrum_layer, use_noise, outermost_linear=True, set_head=True, sf_head=False, split_head=True):
+    def __init__(self, input_dim_g, output_dim, input_dim_d, hidden_features, hidden_layers, spectrum_layer, use_noise, outermost_linear=True, set_head=True, sf_head=False, split_head=True, refine_rounds=0):
         self.output_dim = output_dim
         self.critic = self.ClassicalCritic(input_dim_d)
-        self.generator = self.Hybridren(input_dim_g, hidden_features, hidden_layers, output_dim, spectrum_layer, use_noise, outermost_linear=True, set_head=set_head, sf_head=sf_head, split_head=split_head)
+        self.generator = self.Hybridren(input_dim_g, hidden_features, hidden_layers, output_dim, spectrum_layer, use_noise, outermost_linear=True, set_head=set_head, sf_head=sf_head, split_head=split_head, refine_rounds=refine_rounds)
 
     class ClassicalCritic(nn.Module):
         def __init__(self, input_dim):
@@ -222,7 +296,7 @@ class PQWGAN_CC_Crystal():
         Keeping the heads separate ensures WGAN gradients can independently
         steer cell geometry vs atom positions, preventing cell-param collapse.
         """
-        def __init__(self, in_features, hidden_features, hidden_layers, out_features, spectrum_layer, use_noise, outermost_linear=True, label_dim=28, set_head=True, sf_head=False, split_head=True):
+        def __init__(self, in_features, hidden_features, hidden_layers, out_features, spectrum_layer, use_noise, outermost_linear=True, label_dim=28, set_head=True, sf_head=False, split_head=True, refine_rounds=0):
             super().__init__()
             self.label_dim = label_dim
             self.set_head = set_head
@@ -309,6 +383,9 @@ class PQWGAN_CC_Crystal():
                     nn.Linear(256, 84),
                     nn.Sigmoid(),
                 )
+            # Periodic message-passing refinement after the set head (optional).
+            self.refiner = (PeriodicRefiner(rounds=refine_rounds)
+                            if (refine_rounds > 0 and split_head and set_head) else None)
 
         @property
         def sf_layer(self):
@@ -340,8 +417,13 @@ class PQWGAN_CC_Crystal():
             # exactly 0.0, which a sigmoid can never emit. Map onto the real
             # support, then mask empty slots to exact zero -- that makes the
             # conditioning structural instead of something the critic has to teach.
-            raw    = (self.atom_head(shared, cell, label, self.last_rho) if self.set_head
-                      else self.atom_head(shared))                     # (batch, 84)
+            if self.set_head and self.refiner is not None:
+                raw, tok = self.atom_head(shared, cell, label, self.last_rho,
+                                          return_tokens=True)
+                raw = self.refiner(raw.view(-1, 28, 3), cell, label, tok).reshape(-1, 84)
+            else:
+                raw = (self.atom_head(shared, cell, label, self.last_rho) if self.set_head
+                       else self.atom_head(shared))                    # (batch, 84)
             atoms  = BOX_OFFSET + BOX_SCALE * raw
             atoms  = atoms * label.repeat_interleave(3, dim=1)
 

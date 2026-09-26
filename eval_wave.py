@@ -62,10 +62,11 @@ def load_generator(ckpt_path, z_dim=64, hidden=12, layers=1, spectrum=1):
     # to remember which flags a run used.
     sf = any('rho_proj' in k for k in sd)
     split = not any(k.startswith('joint_head') for k in sd)
+    rounds = len({k.split('.')[2] for k in sd if k.startswith('refiner.edge.')})
     gan = PQWGAN_CC_Crystal(input_dim_g=z_dim + 28, output_dim=90, input_dim_d=126,
                             hidden_features=hidden, hidden_layers=layers,
                             spectrum_layer=spectrum, use_noise=0.0, sf_head=sf,
-                            split_head=split)
+                            split_head=split, refine_rounds=rounds)
     gan.generator.load_state_dict(sd)
     gan.generator.eval()
     return gan.generator, ck.get('epoch', -1), sf
