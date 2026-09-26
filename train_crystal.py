@@ -571,6 +571,7 @@ def train(args):
 
     for epoch in range(start_epoch, args.n_epochs):
         ep_d = ep_w = ep_qr = ep_qf = ep_dist = ep_g = 0.0
+        ep_terms = {}          # every G-step loss term, averaged into epoch_log.csv
         dist_w = min(1.0, epoch / max(warmup_dist, 1)) * lambda_dist
         n_d = n_g = 0
 
@@ -696,6 +697,11 @@ def train(args):
                 ep_qf   += l_q_fake.item()
                 ep_dist += l_dist.item()
                 ep_g    += g_loss.item()
+                for k, v in (('wgan', g_wgan), ('q_fake', l_q_fake), ('dist', l_dist),
+                             ('vol', l_vol), ('mad', l_mad), ('sf', l_sf), ('force', l_force),
+                             ('nn', l_nn), ('vpa_dist', l_vd), ('mode_seek', l_ms),
+                             ('nn_class', l_nnc), ('relax', l_relax), ('g_total', g_loss)):
+                    ep_terms[k] = ep_terms.get(k, 0.0) + float(v)
                 n_g     += 1
 
                 if i % 10 == 0:
@@ -757,6 +763,18 @@ def train(args):
             for opt_x in [optimizer_C, optimizer_Q, optimizer_G]:
                 for pg in opt_x.param_groups:
                     pg['lr'] *= 0.99
+
+        # Written every epoch, not only at the end: runs stopped early used to
+        # leave no loss history at all.
+        row = {'epoch': epoch, 'd_loss': ep_d / max(1, n_d),
+               'wasserstein': ep_w / max(1, n_d), 'q_real': ep_qr / max(1, n_d),
+               **{k: v / max(1, n_g) for k, v in ep_terms.items()}}
+        log_path = os.path.join(args.out_folder, 'epoch_log.csv')
+        new_log = not os.path.exists(log_path)
+        with open(log_path, 'a') as f:
+            if new_log:
+                f.write(','.join(row) + chr(10))
+            f.write(','.join(f'{v:.6g}' for v in row.values()) + chr(10))
 
         epoch_losses['epoch'].append(epoch)
         epoch_losses['d_loss'].append(ep_d    / max(1, n_d))

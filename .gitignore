@@ -37,3 +37,4 @@ datasets/unique_sc_mgmno_name_list
 
 # S.U.N. tracker output
 **/sun_track.csv
+**/epoch_log_from_stdout.csv
