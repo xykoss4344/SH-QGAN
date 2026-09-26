@@ -139,6 +139,59 @@ class ForceDistiller:
         return total / max(n_used, 1)
 
 
+class RelaxDistiller(ForceDistiller):
+    """Pull generated structures toward their own short CHGNet relaxation.
+
+    A force is one step's direction; a short relaxation says where the nearby
+    minimum IS. Measured on the epoch-50 refiner model: raw structures drop
+    1.75 eV/atom on relaxation and 81% relax into a different structure
+    (median RMSD 0.42 A) -- the relaxer, not the generator, was doing the work.
+    This trains the generator to emit the relaxed geometry directly, which is
+    what RMSD-to-relaxed (MatterGen's quality measure) rewards.
+
+        L = mean_atoms || MIC(frac_gen - frac_relaxed) @ A ||^2   (A^2)
+
+    The relaxed target is detached; the cell is held fixed during relaxation
+    so target and generated fractional coordinates share a lattice.
+    """
+
+    def __init__(self, k=4, every=5, steps=20, fmax=0.1, device='cpu'):
+        super().__init__(k=k, every=every, gate=0.0, device=device)
+        from chgnet.model import StructOptimizer
+        self.opt = StructOptimizer(model=self.model)
+        self.steps, self.fmax = steps, fmax
+
+    def loss(self, fake, labels):
+        self._step += 1
+        self.last_n = 0
+        if self._step % self.every != 0:
+            return torch.zeros((), device=fake.device)
+        b = fake.shape[0]
+        idx = np.random.choice(b, size=min(self.k, b), replace=False)
+        picked = self._structures(fake, labels, idx)
+        if not picked:
+            return torch.zeros((), device=fake.device)
+
+        frac = fractional(fake)                                  # (B, 28, 3)
+        lat = lattice_matrix(fake)                               # (B, 3, 3)
+        total, n_used = torch.zeros((), device=fake.device), 0
+        for i, st in picked:
+            try:
+                r = self.opt.relax(st, fmax=self.fmax, steps=self.steps,
+                                   relax_cell=False, verbose=False)
+            except Exception:
+                continue
+            target = torch.as_tensor(r['final_structure'].frac_coords,
+                                     dtype=fake.dtype, device=fake.device)
+            occ = labels[i].bool()
+            d = frac[i][occ] - target
+            d = d - torch.round(d)                               # minimum image
+            total = total + (torch.matmul(d, lat[i]) ** 2).sum(-1).mean()
+            n_used += 1
+        self.last_n = n_used
+        return total / max(n_used, 1)
+
+
 def measure_force_gate(coords, labels, model=None, n=64, percentile=90):
     """Per-atom force norm at `percentile` of real structures, in eV/A.
 

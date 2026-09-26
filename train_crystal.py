@@ -509,6 +509,13 @@ def train(args):
     eval_gen = ema.module if ema is not None else generator
 
     # ── DFT-surrogate force distillation (optional, needs chgnet) ─────────────
+    relaxer = None
+    if args.lambda_relax > 0:
+        from dft_distill import RelaxDistiller
+        relaxer = RelaxDistiller(k=args.relax_k, every=args.relax_every,
+                                 steps=args.relax_steps, device=args.relax_device)
+        print(f"Relaxation distillation on: k={args.relax_k}, every={args.relax_every} "
+              f"G-steps, {args.relax_steps} CHGNet steps on {args.relax_device}")
     distiller = None
     if args.lambda_force > 0:
         from dft_distill import ForceDistiller, measure_force_gate
@@ -647,6 +654,8 @@ def train(args):
 
                 # DFT-surrogate energy descent. Costs one CHGNet forward, no
                 # backward through it -- see dft_distill for why that is exact.
+                l_relax = (relaxer.loss(fake_imgs, labels) if relaxer is not None
+                           else torch.zeros((), device=device))
                 l_force = (distiller.loss(fake_imgs, labels) if distiller is not None
                            else torch.zeros((), device=device))
                 # Distribution matching. Unlike the hinges these are two-sided:
@@ -670,7 +679,8 @@ def train(args):
                           + lambda_vol * l_vol + lambda_mad * l_mad
                           + lambda_sf * l_sf + args.lambda_force * l_force
                           + lambda_nn * l_nn + lambda_vd * l_vd
-                          + lambda_ms * l_ms + lambda_nnc * l_nnc)
+                          + lambda_ms * l_ms + lambda_nnc * l_nnc
+                          + args.lambda_relax * l_relax)
 
                 if not torch.isfinite(g_loss):
                     raise RuntimeError(
@@ -696,6 +706,7 @@ def train(args):
                           f"[Mad: {l_mad.item():.4f}] [SF: {l_sf.item():.4f}] "
                           f"[NN: {l_nn.item():.4f}] [VD: {l_vd.item():.4f}] "
                           f"[MS: {l_ms.item():.4f}] [NNC: {l_nnc.item():.4f}] "
+                          f"[RLX: {l_relax.item():.4f}] "
                           f"[F: {l_force.item():.4f}"
                           f"{f'/{distiller.last_n}' if distiller else ''}] "
                           f"[dist_w: {dist_w:.2f}]")
@@ -903,6 +914,17 @@ if __name__ == "__main__":
                              "min_dist_penalty it penalises 1.1 A contacts that "
                              "clear every floor, and does not go quiet once a "
                              "floor is cleared. Use with --lambda_dist 0.")
+    parser.add_argument("--lambda_relax",    type=float, default=0.0,
+                        help="Relaxation distillation: pull generated positions "
+                             "toward their own short CHGNet relaxation (fixed "
+                             "cell). A force says which way; this says where the "
+                             "minimum is. 0 = off.")
+    parser.add_argument("--relax_k",         type=int,   default=4)
+    parser.add_argument("--relax_every",     type=int,   default=5)
+    parser.add_argument("--relax_steps",     type=int,   default=20)
+    parser.add_argument("--relax_device",    type=str,   default="cuda",
+                        help="CHGNet relaxation runs on the GPU even though the "
+                             "generator trains on CPU: relaxation is the cost.")
     parser.add_argument("--refine_rounds",   type=int,   default=0,
                         help="Rounds of periodic E(3)-equivariant message passing "
                              "after the set head (models.PeriodicRefiner). 0 = off. "
