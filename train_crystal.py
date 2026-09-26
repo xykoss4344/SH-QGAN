@@ -483,6 +483,7 @@ def train(args):
         sf_head         = args.sf_head,
         split_head      = not args.no_split_head,
         refine_rounds   = args.refine_rounds,
+        trunk           = args.trunk,
     )
 
     generator = gan.generator.to(device)
@@ -943,6 +944,12 @@ if __name__ == "__main__":
     parser.add_argument("--relax_device",    type=str,   default="cuda",
                         help="CHGNet relaxation runs on the GPU even though the "
                              "generator trains on CPU: relaxation is the cost.")
+    parser.add_argument("--trunk",           type=str,   default="quantum",
+                        choices=["quantum", "classical_matched", "classical_wide"],
+                        help="Quantum-vs-classical ablation: replace the 12-qubit "
+                             "circuit in each trunk layer with a classical layer of "
+                             "matched size (156 vs 144 params) or 11x wider. "
+                             "Everything else is identical.")
     parser.add_argument("--refine_rounds",   type=int,   default=0,
                         help="Rounds of periodic E(3)-equivariant message passing "
                              "after the set head (models.PeriodicRefiner). 0 = off. "

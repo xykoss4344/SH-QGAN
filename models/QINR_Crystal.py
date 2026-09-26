@@ -7,15 +7,44 @@ import torch.nn.functional as F
 
 from crystal_mic import BOX_OFFSET, BOX_SCALE
 
+class ClassicalTrunkLayer(nn.Module):
+    """Classical stand-in for QuantumLayer -- the quantum-vs-classical ablation.
+
+    Same interface and same bounded input/output: angles tanh(x)*pi in, values
+    in [-1, 1] out (like Pauli-Z expectations), so HybridLayer's residual and
+    BatchNorm around it are untouched and the circuit is the ONLY difference.
+
+      'matched': one Linear(n, n) + tanh -- 156 params for n=12, vs 144 circuit
+                 weights. Tests "is the circuit better at the same size?"
+      'wide':    n -> 64 -> n MLP -- ~1.6k params, 11x the circuit. If this
+                 wins, the circuit is a small nonlinearity, not an advantage.
+    """
+
+    def __init__(self, in_features, kind='matched'):
+        super().__init__()
+        self.in_features = in_features
+        self.net = (nn.Sequential(nn.Linear(in_features, in_features), nn.Tanh())
+                    if kind == 'matched' else
+                    nn.Sequential(nn.Linear(in_features, 64), nn.Tanh(),
+                                  nn.Linear(64, in_features), nn.Tanh()))
+
+    def forward(self, x):
+        return self.net(torch.tanh(x) * np.pi)
+
+
 class HybridLayer(nn.Module):
     def __init__(self, in_features, out_features, spectrum_layer, use_noise, bias=True,
-                 idx=0, readout='z'):
+                 idx=0, readout='z', trunk='quantum'):
         super().__init__()
         self.idx = idx
         self.readout = readout
         self.clayer = nn.Linear(in_features, out_features, bias=bias)
         self.norm = nn.BatchNorm1d(out_features)
-        self.qlayer = QuantumLayer(out_features, spectrum_layer, use_noise, readout=readout)
+        if trunk == 'quantum':
+            self.qlayer = QuantumLayer(out_features, spectrum_layer, use_noise, readout=readout)
+        else:
+            assert readout == 'z', 'the sf_head readout needs the quantum circuit'
+            self.qlayer = ClassicalTrunkLayer(out_features, kind=trunk.split('_')[1])
         # Set by forward when readout='zx': (B, n_qubits, 2), the complex
         # amplitude rho(G_i) read off qubit i. Stashed rather than returned so
         # the generator's 90-dim output signature stays what ten eval_*.py
@@ -257,10 +286,10 @@ class PeriodicRefiner(nn.Module):
 
 
 class PQWGAN_CC_Crystal():
-    def __init__(self, input_dim_g, output_dim, input_dim_d, hidden_features, hidden_layers, spectrum_layer, use_noise, outermost_linear=True, set_head=True, sf_head=False, split_head=True, refine_rounds=0):
+    def __init__(self, input_dim_g, output_dim, input_dim_d, hidden_features, hidden_layers, spectrum_layer, use_noise, outermost_linear=True, set_head=True, sf_head=False, split_head=True, refine_rounds=0, trunk='quantum'):
         self.output_dim = output_dim
         self.critic = self.ClassicalCritic(input_dim_d)
-        self.generator = self.Hybridren(input_dim_g, hidden_features, hidden_layers, output_dim, spectrum_layer, use_noise, outermost_linear=True, set_head=set_head, sf_head=sf_head, split_head=split_head, refine_rounds=refine_rounds)
+        self.generator = self.Hybridren(input_dim_g, hidden_features, hidden_layers, output_dim, spectrum_layer, use_noise, outermost_linear=True, set_head=set_head, sf_head=sf_head, split_head=split_head, refine_rounds=refine_rounds, trunk_type=trunk)
 
     class ClassicalCritic(nn.Module):
         def __init__(self, input_dim):
@@ -296,7 +325,7 @@ class PQWGAN_CC_Crystal():
         Keeping the heads separate ensures WGAN gradients can independently
         steer cell geometry vs atom positions, preventing cell-param collapse.
         """
-        def __init__(self, in_features, hidden_features, hidden_layers, out_features, spectrum_layer, use_noise, outermost_linear=True, label_dim=28, set_head=True, sf_head=False, split_head=True, refine_rounds=0):
+        def __init__(self, in_features, hidden_features, hidden_layers, out_features, spectrum_layer, use_noise, outermost_linear=True, label_dim=28, set_head=True, sf_head=False, split_head=True, refine_rounds=0, trunk_type='quantum'):
             super().__init__()
             self.label_dim = label_dim
             self.set_head = set_head
@@ -320,7 +349,7 @@ class PQWGAN_CC_Crystal():
                 trunk.append(HybridLayer(
                     in_features if i == 0 else hidden_features, hidden_features,
                     spectrum_layer, use_noise, idx=i + 1,
-                    readout='zx' if (last and sf_head) else 'z'))
+                    readout='zx' if (last and sf_head) else 'z', trunk=trunk_type))
             # Index, not a second reference. Assigning the module to an
             # attribute registers it twice, which duplicates every one of its
             # tensors under `sf_layer.*` in state_dict() and makes strict
