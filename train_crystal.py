@@ -277,6 +277,28 @@ def geometry_features(x, labels, k=8):
 # Set False to reproduce the flat-critic ablation.
 USE_GEOMETRY_FEATURES = True
 GEOM_K = 8
+# Species-resolved critic geometry (--critic_species_geom): GEOM_K smallest
+# cation-cation, cation-O and O-O distances instead of GEOM_K pooled ones. The
+# pooled features cannot tell a cation 2.1 A from another cation from one 2.1 A
+# from an O, so the critic never penalised the missing ionic ordering (wave 14:
+# tripling the species-resolved NN loss moved nothing -- the critic dominates).
+SPECIES_GEOM = False
+_CAT = torch.arange(28) < 16
+_PAIR_CLASSES = ((_CAT, _CAT), (_CAT, ~_CAT), (~_CAT, ~_CAT))
+
+
+def species_geometry_features(x, labels, k=GEOM_K):
+    """(B, 3k): k smallest cation-cation, cation-O, O-O distances, /20."""
+    d = _pair_distances(x, labels).clamp(min=0.3)     # same GP-safe clamp
+    occ = labels.unsqueeze(2) * labels.unsqueeze(1)
+    pair = occ * (1.0 - torch.eye(28, device=x.device)).unsqueeze(0)
+    out = []
+    for a, b in _PAIR_CLASSES:
+        cls = (a.view(28, 1) & b.view(1, 28)).to(x.device).float().unsqueeze(0)
+        # 20 A (the cap) when a class has fewer than k pairs, e.g. one cation.
+        dd = d * pair * cls + (1.0 - pair * cls) * 20.0
+        out.append(torch.topk(dd.reshape(len(x), -1), k, dim=1, largest=False).values)
+    return torch.clamp(torch.cat(out, dim=1), max=20.0) / 20.0
 
 # Diffraction intensities |S(G)|^2 over the 12 smallest Miller indices. The
 # critic can no more infer periodicity from 90 raw numbers than it could infer
@@ -385,7 +407,8 @@ def critic_input(x, labels):
     """Everything the critic sees: structure, label, geometry, diffraction."""
     parts = [x, labels]
     if USE_GEOMETRY_FEATURES:
-        parts.append(geometry_features(x, labels, k=GEOM_K))
+        parts.append(species_geometry_features(x, labels) if SPECIES_GEOM
+                     else geometry_features(x, labels, k=GEOM_K))
     if USE_SF_FEATURES:
         parts.append(structure_factor_features(x, labels, G_VECTORS))
     return torch.cat(parts, dim=1)
@@ -402,7 +425,8 @@ def train(args):
     # thread per process and many processes in parallel is ~14x the throughput
     # of a single wide run. See bench_device.py.
     torch.set_num_threads(args.num_threads)
-    global USE_SF_FEATURES, VPA_LO, VPA_HI, DIST_HINGE
+    global USE_SF_FEATURES, VPA_LO, VPA_HI, DIST_HINGE, SPECIES_GEOM
+    SPECIES_GEOM = args.critic_species_geom
     DIST_HINGE = args.dist_hinge
     VPA_LO, VPA_HI = args.vpa_lo, args.vpa_hi
     print(f"Volume prior: {VPA_LO}-{VPA_HI} A^3/atom (real median 11.25)")
@@ -444,7 +468,8 @@ def train(args):
     # ── Model ─────────────────────────────────────────────────────────────────
     gen_input_dim    = z_dim + label_dim        # generator: noise + label
     critic_input_dim = (data_dim + label_dim
-                        + (GEOM_K if USE_GEOMETRY_FEATURES else 0)
+                        + ((3 * GEOM_K if SPECIES_GEOM else GEOM_K)
+                           if USE_GEOMETRY_FEATURES else 0)
                         + (N_G if USE_SF_FEATURES else 0))
     print("Initializing QINR Crystal Model...")
     gan = PQWGAN_CC_Crystal(
@@ -877,6 +902,10 @@ if __name__ == "__main__":
                              "min_dist_penalty it penalises 1.1 A contacts that "
                              "clear every floor, and does not go quiet once a "
                              "floor is cleared. Use with --lambda_dist 0.")
+    parser.add_argument("--critic_species_geom", action="store_true",
+                        help="Critic sees the 8 smallest cation-cation, cation-O "
+                             "and O-O distances (24) instead of 8 pooled ones, so "
+                             "missing ionic ordering is visible to it.")
     parser.add_argument("--lambda_nn_class",  type=float, default=0.0,
                         help="Weight on SPECIES-RESOLVED nearest-neighbour "
                              "distribution matching (cation->cation, cation->O, "
