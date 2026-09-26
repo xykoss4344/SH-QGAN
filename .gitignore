@@ -34,3 +34,6 @@ bench_out/
 # Rebuilt by datasets/rebuild_dataset.py
 datasets/unique_sc_mgmno.npy
 datasets/unique_sc_mgmno_name_list
+
+# S.U.N. tracker output
+**/sun_track.csv
