@@ -23,13 +23,28 @@ class ClassicalTrunkLayer(nn.Module):
     def __init__(self, in_features, kind='matched'):
         super().__init__()
         self.in_features = in_features
-        self.net = (nn.Sequential(nn.Linear(in_features, in_features), nn.Tanh())
-                    if kind == 'matched' else
-                    nn.Sequential(nn.Linear(in_features, 64), nn.Tanh(),
-                                  nn.Linear(64, in_features), nn.Tanh()))
+        self.kind = kind
+        if kind == 'matched':
+            self.net = nn.Sequential(nn.Linear(in_features, in_features), nn.Tanh())
+        elif kind == 'wide':
+            self.net = nn.Sequential(nn.Linear(in_features, 64), nn.Tanh(),
+                                     nn.Linear(64, in_features), nn.Tanh())
+        else:
+            # 'fourier': the classical twin of a one-layer data-reupload circuit.
+            # That circuit outputs a trigonometric polynomial with frequencies
+            # {-1, 0, 1} per input and cross terms from entanglement. Here the
+            # same sin/cos features feed a small MLP that can form products.
+            # If quantum only ties this, its benefit is the Fourier structure,
+            # which a classical layer gets too, not anything quantum.
+            # 24*6+6 + 6*12+12 = 234 params for n=12.
+            self.net = nn.Sequential(nn.Linear(2 * in_features, 6), nn.Tanh(),
+                                     nn.Linear(6, in_features), nn.Tanh())
 
     def forward(self, x):
-        return self.net(torch.tanh(x) * np.pi)
+        theta = torch.tanh(x) * np.pi
+        if self.kind == 'fourier':
+            theta = torch.cat([torch.sin(theta), torch.cos(theta)], dim=-1)
+        return self.net(theta)
 
 
 class HybridLayer(nn.Module):

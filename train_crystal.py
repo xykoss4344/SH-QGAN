@@ -945,7 +945,7 @@ if __name__ == "__main__":
                         help="CHGNet relaxation runs on the GPU even though the "
                              "generator trains on CPU: relaxation is the cost.")
     parser.add_argument("--trunk",           type=str,   default="quantum",
-                        choices=["quantum", "classical_matched", "classical_wide"],
+                        choices=["quantum", "classical_matched", "classical_wide", "classical_fourier"],
                         help="Quantum-vs-classical ablation: replace the 12-qubit "
                              "circuit in each trunk layer with a classical layer of "
                              "matched size (156 vs 144 params) or 11x wider. "

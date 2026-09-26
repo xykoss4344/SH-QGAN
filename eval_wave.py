@@ -64,8 +64,14 @@ def load_generator(ckpt_path, z_dim=64, hidden=12, layers=1, spectrum=1):
     split = not any(k.startswith('joint_head') for k in sd)
     rounds = len({k.split('.')[2] for k in sd if k.startswith('refiner.edge.')})
     net = [k for k in sd if '.qlayer.net.' in k]
-    trunk = ('quantum' if not net else
-             'classical_wide' if any('.qlayer.net.2.' in k for k in net) else 'classical_matched')
+    def _trunk():
+        if not net:
+            return 'quantum'
+        w0 = next(sd[k] for k in net if k.endswith('net.0.weight'))
+        if w0.shape[1] == 2 * w0.shape[0] or w0.shape[1] == 24:
+            return 'classical_fourier'
+        return 'classical_wide' if any('.qlayer.net.2.' in k for k in net) else 'classical_matched'
+    trunk = _trunk()
     gan = PQWGAN_CC_Crystal(input_dim_g=z_dim + 28, output_dim=90, input_dim_d=126,
                             hidden_features=hidden, hidden_layers=layers,
                             spectrum_layer=spectrum, use_noise=0.0, sf_head=sf,
