@@ -58,6 +58,13 @@ def load_generator(ckpt_path, z_dim=64, hidden=12, layers=1, spectrum=1):
     from models.QINR_Crystal import PQWGAN_CC_Crystal
     ck = torch.load(ckpt_path, map_location='cpu', weights_only=False)  # our own checkpoints; they carry probe metrics, not just tensors
     sd = ck['generator']
+    # Width/depth come from the saved args when present (qubit sweep: 4-16
+    # qubits); the trunk projection's input width is the fallback.
+    a = ck.get('args', {})
+    hidden = a.get('hidden_features', sd['trunk.2.weight'].shape[1] if 'trunk.2.weight' in sd else hidden)
+    layers = a.get('hidden_layers', layers)
+    spectrum = a.get('spectrum_layer', spectrum)
+    z_dim = a.get('z_dim', z_dim)
     # Infer the architecture from the weights rather than requiring the caller
     # to remember which flags a run used.
     sf = any('rho_proj' in k for k in sd)
