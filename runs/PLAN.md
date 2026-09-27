@@ -82,3 +82,19 @@ w13 (all: inv MS 0.002, EMA 0.999 + warm-up, floors data, vpa_dist 1.0, seed 0):
 | w13_sq01_vd1_s0 | sq | 0.1 | vpa_dist 1.0 (vs w12_dist10_msinv) |
 
 Question: LeMat-valid (probe `lemat=`) up, vpa back to ~11.3, std_z > 0.01.
+
+# Wave 26 — qubit-scaling sweep (2026-09-27)
+
+Question: does the quantum trunk gain more per parameter as it grows? Lead
+config (w20: refiner + species features + force 0.5), seed 1, quantum vs
+classical_matched at equal width. 12 qubits already exists (w20_force05_s1 vs
+w24_classical_matched_s1).
+
+| width | quantum | classical |
+|---|---|---|
+| 4 | w26_q4_s1 (96 circuit weights) | w26_c4_s1 |
+| 8 | w26_q8_s1 (192) | w26_c8_s1 |
+| 16 | w26_q16_s1 (384, GPU: 4.1 s/batch; CPU would be 26 s) | w26_c16_s1 |
+
+Motivation: the 3-seed ablation at 12 qubits was a tie (energy -0.008 +/- 0.014
+plain, +0.003 +/- 0.040 structure-factor). Reviewer item #12 asks for the sweep.
